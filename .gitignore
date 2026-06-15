@@ -1,0 +1,6 @@
+BACKEND/.env
+FRONTEND/node_modules
+FRONTEND/.vite
+node_modules
+.vite
+.env
