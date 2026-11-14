@@ -1,29 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  House, Compass, User, FolderOpen, FileText, MessageSquare, Map as MapIcon, Search, Bell, LogOut,
+  ChevronDown, Check, Plus, Send, Download, Eye, Lock, Mail, ArrowRight, ArrowUpRight, X, Minus,
+  Code2, BarChart3, ShieldCheck, PenTool, Cloud, Cpu, Award, Briefcase, GraduationCap, MapPin,
+  Building2, Bookmark, FileUp, Landmark, Megaphone, Link as LinkIcon, RotateCw, Circle, Loader2,
+} from "lucide-react";
 
-// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+// ─── DESIGN TOKENS (mirrors :root in index.css) ───────────────────────────────
 const T = {
   bg: "#070810",
   surface: "#0E0F1A",
-  surfaceHover: "#13152A",
-  border: "#1C1D2E",
-  borderAccent: "#2A2B45",
-  accent: "#5B6EF5",
-  accentLight: "#7B8AF8",
-  accentGlow: "rgba(91,110,245,0.15)",
-  accentGlow2: "rgba(91,110,245,0.08)",
-  green: "#22D17A",
-  greenDim: "rgba(34,209,122,0.12)",
-  amber: "#F5A623",
-  amberDim: "rgba(245,166,35,0.12)",
-  red: "#F04D4D",
-  redDim: "rgba(240,77,77,0.1)",
-  purple: "#9B6EF5",
-  purpleGlow: "rgba(155,110,245,0.12)",
+  surface2: "#13152A",
+  line: "#1C1D2E",
+  line2: "#2A2B45",
   t1: "#F0F0FA",
   t2: "#9899B8",
   t3: "#5C5D80",
   t4: "#33345A",
+  accent: "#5B6EF5",
+  accentLight: "#7B8AF8",
+  green: "#22D17A",
+  amber: "#F5A623",
+  red: "#F04D4D",
+  purple: "#9B6EF5",
 };
+const SW = 1.75; // icon stroke width
 
 // ─── MOCK DATA ─────────────────────────────────────────────────────────────────
 const FIELD_SKILLS = {
@@ -48,637 +49,993 @@ const FIELD_INTERESTS = {
   "Digital Marketing": ["Growth Hacking", "Brand Building", "Influencer Marketing", "E-Commerce", "Performance Marketing", "Content Creation", "Community Management", "MarTech"],
 };
 
+const FIELD_ICONS = {
+  "Software Engineering": Code2,
+  "Data Science": BarChart3,
+  "Cybersecurity": ShieldCheck,
+  "UI/UX Design": PenTool,
+  "Cloud Computing": Cloud,
+  "Artificial Intelligence": Cpu,
+  "Business Administration": Landmark,
+  "Digital Marketing": Megaphone,
+};
+const FIELD_SHORT = { "Software Engineering": "Software", "Data Science": "Data", "Cybersecurity": "Security", "UI/UX Design": "Design", "Cloud Computing": "Cloud", "Artificial Intelligence": "AI" };
+
+// What the signed-in user (Ahmad) already has — drives match % and skill gaps
+const USER_SKILLS = new Set(["Python", "SQL", "Tableau", "Pandas", "NumPy", "Machine Learning", "Statistics", "Excel", "Git", "Basic SQL", "Data Entry", "Reporting", "Data Cleaning", "Power BI", "Docker"]);
+
 const CAREERS = [
-  { id: 1, title: "Software Engineer", icon: "💻", level: "Junior–Senior", field: "Software Engineering", salary: "RM 5,000–15,000", demand: 97, description: "Design, develop, and maintain scalable software systems. Work in agile teams shipping products used by thousands.", skills: ["JavaScript", "Python", "React", "Node.js", "Git", "Docker"], tools: ["VS Code", "GitHub", "Jira", "Postman"], companies: ["Grab", "Shopee", "Fusionex", "iPay88", "Revenue Monster", "Axiata Digital"], responsibilities: ["Build and ship features end-to-end", "Code review and technical mentorship", "System design and architecture", "Performance optimization"], certs: ["AWS Solutions Architect", "Google Cloud Professional", "Meta Frontend Developer"] },
-  { id: 2, title: "Data Analyst", icon: "📊", level: "Junior–Senior", field: "Data Science", salary: "RM 4,500–10,000", demand: 92, description: "Transform raw data into business intelligence. Build dashboards, run analyses, and drive data-informed decisions.", skills: ["Python", "SQL", "Tableau", "Excel", "Statistics", "Power BI"], tools: ["Tableau", "Power BI", "Jupyter", "PostgreSQL"], companies: ["CIMB", "Petronas", "Shopee", "Grab", "Maxis", "Digi"], responsibilities: ["Build reporting dashboards", "Statistical analysis and A/B testing", "Data pipeline management", "Stakeholder presentations"], certs: ["Google Data Analytics", "Databricks Associate", "Microsoft Power BI"] },
-  { id: 3, title: "Cybersecurity Analyst", icon: "🔐", level: "Junior–Senior", field: "Cybersecurity", salary: "RM 5,000–13,000", demand: 94, description: "Protect digital infrastructure. Monitor threats, respond to incidents, and harden systems against attacks.", skills: ["Linux", "Penetration Testing", "SIEM", "Python", "Network Security", "Compliance"], tools: ["Splunk", "Wireshark", "Metasploit", "Nmap"], companies: ["CyberSecurity Malaysia", "Telekom MY", "MIMOS", "RHB Bank", "KPMG MY"], responsibilities: ["Security monitoring and incident response", "Vulnerability assessments", "Security policy implementation", "Threat hunting"], certs: ["CompTIA Security+", "CEH", "CISSP", "OSCP"] },
-  { id: 4, title: "UX Designer", icon: "🎨", level: "Junior–Senior", field: "UI/UX Design", salary: "RM 4,500–11,000", demand: 86, description: "Craft user-centered experiences. Own the full design process from research to final handoff.", skills: ["Figma", "User Research", "Wireframing", "Prototyping", "Design Systems"], tools: ["Figma", "Maze", "Hotjar", "Notion"], companies: ["Carsome", "PropertyGuru", "AirAsia", "Lazada MY", "GoGet"], responsibilities: ["User research and persona creation", "Information architecture", "Hi-fi prototyping", "Design system maintenance"], certs: ["Google UX Design", "Interaction Design Foundation", "Nielsen Norman UX"] },
-  { id: 5, title: "Cloud Engineer", icon: "☁️", level: "Mid–Senior", field: "Cloud Computing", salary: "RM 7,000–18,000", demand: 95, description: "Architect and manage cloud infrastructure. Build the foundation that modern products run on.", skills: ["AWS", "Terraform", "Docker", "Kubernetes", "Linux", "CI/CD"], tools: ["AWS Console", "Terraform", "ArgoCD", "Grafana"], companies: ["TM One", "AWS Malaysia", "Microsoft MY", "Accenture MY"], responsibilities: ["Cloud infrastructure provisioning", "CI/CD pipeline management", "Cost optimization", "Reliability engineering"], certs: ["AWS Solutions Architect", "CKA Kubernetes", "HashiCorp Terraform"] },
-  { id: 6, title: "AI/ML Engineer", icon: "🤖", level: "Mid–Senior", field: "Artificial Intelligence", salary: "RM 8,000–20,000", demand: 99, description: "Build production AI systems. From model training to deployment, you bridge research and real-world applications.", skills: ["Python", "TensorFlow", "PyTorch", "MLOps", "SQL", "Docker"], tools: ["Jupyter", "MLflow", "Hugging Face", "Weights & Biases"], companies: ["Carsome AI", "CtrlF+", "DataMicron", "Mindvalley Tech"], responsibilities: ["Model development and training", "ML pipeline engineering", "Production model deployment", "Experimentation infrastructure"], certs: ["Google ML Engineer", "AWS ML Specialty", "DeepLearning.AI"] },
-];
+  { id: 1, title: "Software Engineer", level: "Junior–Senior", field: "Software Engineering", salary: "5,000–15,000", demand: 97, description: "Design, develop, and maintain scalable software systems. Work in agile teams shipping products used by thousands.", skills: ["JavaScript", "Python", "React", "Node.js", "Git", "Docker"], companies: ["Grab", "Shopee", "Fusionex", "iPay88", "Revenue Monster", "Axiata Digital"], responsibilities: ["Build and ship features end-to-end", "Code review and technical mentorship", "System design and architecture"], certs: ["AWS Solutions Architect", "Google Cloud Professional", "Meta Frontend Developer"] },
+  { id: 2, title: "Data Analyst", level: "Junior–Senior", field: "Data Science", salary: "4,500–10,000", demand: 92, description: "Transform raw data into business intelligence. Build dashboards, run analyses, and drive data-informed decisions.", skills: ["Python", "SQL", "Tableau", "Excel", "Statistics", "Power BI"], companies: ["CIMB", "Petronas", "Shopee", "Grab", "Maxis", "Digi"], responsibilities: ["Build reporting dashboards", "Statistical analysis and A/B testing", "Stakeholder presentations"], certs: ["Google Data Analytics", "Databricks Associate", "Microsoft Power BI"] },
+  { id: 3, title: "Cybersecurity Analyst", level: "Junior–Senior", field: "Cybersecurity", salary: "5,000–13,000", demand: 94, description: "Protect digital infrastructure. Monitor threats, respond to incidents, and harden systems against attacks.", skills: ["Linux", "Penetration Testing", "SIEM", "Python", "Network Security", "Compliance"], companies: ["CyberSecurity Malaysia", "Telekom MY", "MIMOS", "RHB Bank", "KPMG MY"], responsibilities: ["Security monitoring and incident response", "Vulnerability assessments", "Threat hunting"], certs: ["CompTIA Security+", "CEH", "CISSP", "OSCP"] },
+  { id: 4, title: "UX Designer", level: "Junior–Senior", field: "UI/UX Design", salary: "4,500–11,000", demand: 86, description: "Craft user-centred experiences. Own the full design process from research to final handoff.", skills: ["Figma", "User Research", "Wireframing", "Prototyping", "Design Systems"], companies: ["Carsome", "PropertyGuru", "AirAsia", "Lazada MY", "GoGet"], responsibilities: ["User research and persona creation", "Information architecture", "Design system maintenance"], certs: ["Google UX Design", "Interaction Design Foundation", "Nielsen Norman UX"] },
+  { id: 5, title: "Cloud Engineer", level: "Mid–Senior", field: "Cloud Computing", salary: "7,000–18,000", demand: 95, description: "Architect and manage cloud infrastructure. Build the foundation that modern products run on.", skills: ["AWS", "Terraform", "Docker", "Kubernetes", "Linux", "CI/CD"], companies: ["TM One", "AWS Malaysia", "Microsoft MY", "Accenture MY"], responsibilities: ["Cloud infrastructure provisioning", "CI/CD pipeline management", "Cost optimisation"], certs: ["AWS Solutions Architect", "CKA Kubernetes", "HashiCorp Terraform"] },
+  { id: 6, title: "AI/ML Engineer", level: "Mid–Senior", field: "Artificial Intelligence", salary: "8,000–20,000", demand: 99, description: "Build production AI systems. From model training to deployment, you bridge research and real-world applications.", skills: ["Python", "TensorFlow", "PyTorch", "MLOps", "SQL", "Docker"], companies: ["Carsome AI", "CtrlF+", "DataMicron", "Mindvalley Tech"], responsibilities: ["Model development and training", "ML pipeline engineering", "Production model deployment"], certs: ["Google ML Engineer", "AWS ML Specialty", "DeepLearning.AI"] },
+].map(c => ({ ...c, match: Math.round((c.skills.filter(s => USER_SKILLS.has(s)).length / c.skills.length) * 100) }));
 
 const CAREER_PATH_DATA = {
   "Data Analyst": [
-    { title: "Data Intern", status: "completed", skills: ["Excel", "Basic SQL", "Data Entry", "Reporting"], timeline: "0–6 months" },
-    { title: "Junior Data Analyst", status: "current", skills: ["Python", "SQL", "Tableau", "Statistics", "Data Cleaning"], timeline: "6mo–2yr" },
-    { title: "Data Analyst", status: "next", skills: ["Advanced Python", "ML Basics", "Stakeholder Management", "A/B Testing", "dbt"], certs: ["Google Advanced Data Analytics", "Databricks Associate"], timeline: "2–4 years" },
-    { title: "Senior Data Analyst", status: "future", skills: ["Team Leadership", "Cloud Platforms", "Strategy", "ML Integration", "Executive Comms"], certs: ["AWS Data Analytics Specialty"], timeline: "4–6 years" },
-    { title: "Analytics Manager", status: "future", skills: ["People Management", "Budget Planning", "Product Strategy", "Org Design"], certs: [], timeline: "6+ years" },
+    { title: "Data Intern", status: "completed", skills: ["Excel", "Basic SQL", "Data Entry", "Reporting"], timeline: "0–6 mo" },
+    { title: "Junior Data Analyst", status: "current", skills: ["Python", "SQL", "Tableau", "Statistics", "Data Cleaning"], timeline: "6 mo–2 yr" },
+    { title: "Data Analyst", status: "next", skills: ["Advanced Python", "ML Basics", "Stakeholder Management", "A/B Testing", "dbt"], certs: ["Google Advanced Data Analytics", "Databricks Associate"], timeline: "2–4 yr" },
+    { title: "Senior Data Analyst", status: "future", skills: ["Team Leadership", "Cloud Platforms", "Strategy", "ML Integration", "Executive Comms"], certs: ["AWS Data Analytics Specialty"], timeline: "4–6 yr" },
+    { title: "Analytics Manager", status: "future", skills: ["People Management", "Budget Planning", "Product Strategy", "Org Design"], certs: [], timeline: "6+ yr" },
   ],
 };
 
 const PORTFOLIO_ITEMS = [
-  { id: 1, title: "E-Commerce Sales Dashboard", type: "Project", tech: ["Python", "Tableau", "SQL", "Pandas"], desc: "Interactive BI dashboard analyzing 500K+ transactions with automated daily refresh pipeline.", emoji: "📈", views: 312, github: "github.com/ahmad/sales-dash", featured: true },
-  { id: 2, title: "AWS Cloud Practitioner", type: "Certificate", tech: ["AWS"], desc: "Issued by Amazon Web Services • Verified Jun 2024 • Credential ID: AWS-001234", emoji: "🏅", views: 128, featured: true },
-  { id: 3, title: "Customer Churn Predictor", type: "Project", tech: ["Python", "Scikit-learn", "Pandas", "Flask"], desc: "ML classification model achieving 87% accuracy. Deployed as REST API on AWS Lambda.", emoji: "🤖", views: 245, github: "github.com/ahmad/churn-model" },
-  { id: 4, title: "Google Data Analytics", type: "Certificate", tech: ["SQL", "R", "Tableau", "Spreadsheets"], desc: "Issued by Google via Coursera • Verified Mar 2024 • 6-month professional certificate", emoji: "🏆", views: 189 },
+  { id: 1, title: "E-Commerce Sales Dashboard", type: "Project", icon: BarChart3, tech: ["Python", "Tableau", "SQL", "Pandas"], desc: "Interactive BI dashboard analysing 500K+ transactions with an automated daily refresh pipeline.", views: 312, github: true, featured: true },
+  { id: 2, title: "AWS Cloud Practitioner", type: "Certificate", icon: Award, tech: ["AWS"], desc: "Amazon Web Services · Verified Jun 2024 · Credential AWS-001234", views: 128, featured: true },
+  { id: 3, title: "Customer Churn Predictor", type: "Project", icon: Cpu, tech: ["Python", "Scikit-learn", "Pandas", "Flask"], desc: "Classification model at 87% accuracy, deployed as a REST API on AWS Lambda.", views: 245, github: true },
+  { id: 4, title: "Google Data Analytics", type: "Certificate", icon: Award, tech: ["SQL", "R", "Tableau", "Spreadsheets"], desc: "Google via Coursera · Verified Mar 2024 · 6-month professional certificate", views: 189 },
+  { id: 5, title: "Data Analyst Intern — TechCorp", type: "Experience", icon: Briefcase, tech: ["Python", "SQL", "Tableau"], desc: "ETL pipelines over 500K+ daily records; dashboards that cut reporting time by 40%.", views: 97 },
 ];
 
 const MESSAGES_DATA = [
-  { id: 1, name: "Sarah Lim", role: "Senior Data Scientist @ Grab", avatar: "SL", color: "#5B6EF5", online: true, unread: 2, lastMsg: "Hey, reviewed your portfolio — your churn model is impressive! Want to chat?", time: "2m ago",
+  { id: 1, name: "Sarah Lim", role: "Senior Data Scientist, Grab", avatar: "SL", color: T.purple, online: true, unread: 2, time: "2m",
     history: [
       { from: "them", text: "Hi Ahmad! I came across your profile and your customer churn predictor project caught my eye.", time: "Yesterday 2:30 PM" },
       { from: "me", text: "Thank you Sarah! It was a 3-month project where I deployed the model to production using Flask + AWS Lambda.", time: "Yesterday 2:45 PM" },
       { from: "them", text: "Impressive! We actually have an opening for a Junior Data Analyst at Grab. Would you be open to a referral?", time: "Yesterday 3:00 PM" },
       { from: "them", text: "Hey, reviewed your portfolio — your churn model is impressive! Want to chat?", time: "2m ago" },
-    ]
-  },
-  { id: 2, name: "Wei Chen", role: "Tech Recruiter @ Shopee", avatar: "WC", color: "#F04D4D", online: false, unread: 0, lastMsg: "Following up on the Data Analyst position we discussed last week.", time: "1h ago",
+    ] },
+  { id: 2, name: "Wei Chen", role: "Tech Recruiter, Shopee", avatar: "WC", color: T.amber, online: false, unread: 0, time: "1h",
     history: [
       { from: "them", text: "Hi Ahmad, I'm Wei from Shopee's talent team. We have a Data Analyst role that matches your profile.", time: "3 days ago" },
       { from: "me", text: "Hi Wei, thanks for reaching out! I'd be very interested to hear more about the role.", time: "3 days ago" },
       { from: "them", text: "Following up on the Data Analyst position we discussed last week.", time: "1h ago" },
-    ]
-  },
-  { id: 3, name: "Marcus Tan", role: "Product Manager @ StoreHub", avatar: "MT", color: "#22D17A", online: true, unread: 1, lastMsg: "Your portfolio link is impressive. Can you share your resume as well?", time: "3h ago",
+    ] },
+  { id: 3, name: "Marcus Tan", role: "Product Manager, StoreHub", avatar: "MT", color: T.green, online: true, unread: 1, time: "3h",
     history: [
       { from: "them", text: "Your portfolio link is impressive. Can you share your resume as well?", time: "3h ago" },
-    ]
-  },
+    ] },
 ];
 
-// ─── ICONS ─────────────────────────────────────────────────────────────────────
-const icons = {
-  home: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  compass: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>,
-  user: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  folder: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>,
-  file: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
-  message: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
-  map: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
-  bot: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>,
-  star: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  starFill: <svg width="14" height="14" viewBox="0 0 24 24" fill="#F5A623" stroke="#F5A623" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  chevDown: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
-  chevUp: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>,
-  chevRight: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
-  check: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>,
-  plus: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  send: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-  download: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-  upload: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>,
-  eye: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-  search: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  lock: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
-  mail: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>,
-  person: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  arrow: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
-  sparkle: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>,
-  bell: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
-  settings: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
-  x: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  github: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>,
-  minimize: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-};
-const Ic = ({ n, size }) => {
-  const el = icons[n];
-  if (!el) return null;
-  if (size) return <span style={{ display: "inline-flex", width: size, height: size }}>{el}</span>;
-  return <span style={{ display: "inline-flex" }}>{el}</span>;
+const AUTO_REPLIES = {
+  1: "Sounds great! I'll send the referral link over tonight.",
+  2: "Thanks Ahmad. Are you free for a quick call this Thursday at 3 PM?",
+  3: "Perfect, received. I'll pass it to our hiring manager today.",
 };
 
-// ─── SHARED UI COMPONENTS ──────────────────────────────────────────────────────
-const Btn = ({ children, variant = "primary", onClick, disabled, style = {}, size = "md" }) => {
-  const pad = size === "sm" ? "7px 14px" : size === "lg" ? "13px 28px" : "10px 20px";
-  const fs = size === "sm" ? 11 : size === "lg" ? 14 : 12;
-  const styles = {
-    primary: { background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, color: "#fff", border: "none" },
-    secondary: { background: "transparent", color: T.t2, border: `1px solid ${T.border}` },
-    ghost: { background: "transparent", color: T.accent, border: `1px solid ${T.accentGlow}` },
-    danger: { background: T.redDim, color: T.red, border: `1px solid ${T.red}33` },
-    success: { background: T.greenDim, color: T.green, border: `1px solid ${T.green}33` },
-  };
+const TRENDING = [["Generative AI", 64], ["MLOps", 38], ["dbt", 31], ["AWS", 26], ["Cybersecurity", 22], ["Power BI", 21]];
+
+// ─── MOTION HELPERS ────────────────────────────────────────────────────────────
+const d = (ms) => ({ "--d": `${ms}ms` }); // stagger delay for .in / .in-pop / .grow-x
+
+function useMounted(delay = 0) {
+  const [m, setM] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setM(true), delay + 30);
+    return () => clearTimeout(t);
+  }, [delay]);
+  return m;
+}
+
+function useCountUp(target, duration = 1100, delay = 0) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    let raf;
+    let start;
+    const t = setTimeout(() => {
+      const tick = (now) => {
+        if (start === undefined) start = now;
+        const p = Math.min(1, (now - start) / duration);
+        setV(target * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, delay);
+    return () => { clearTimeout(t); cancelAnimationFrame(raf); };
+  }, [target, duration, delay]);
+  return v;
+}
+
+function CountUp({ value, suffix = "", delay = 0 }) {
+  const v = useCountUp(value, 1100, delay);
+  return <>{Math.round(v).toLocaleString()}{suffix}</>;
+}
+
+// Typewriter reveal; remount with a new key to replay
+function TypeText({ text, onTick }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setN(x => {
+        if (x >= text.length) { clearInterval(iv); return x; }
+        return Math.min(text.length, x + 3);
+      });
+      onTick?.();
+    }, 14);
+    return () => clearInterval(iv);
+  }, [text, onTick]);
+  return <>{text.slice(0, n)}{n < text.length && <span className="caret" />}</>;
+}
+
+function Sparkline({ data, delay = 0 }) {
+  const w = 76, h = 28;
+  const min = Math.min(...data), max = Math.max(...data);
+  const pts = data.map((v, i) => [(i / (data.length - 1)) * w, h - 3 - ((v - min) / (max - min || 1)) * (h - 6)]);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const last = pts[pts.length - 1];
   return (
-    <button onClick={onClick} disabled={disabled} style={{ padding: pad, borderRadius: 8, fontSize: fs, fontWeight: 600, cursor: disabled ? "default" : "pointer", display: "inline-flex", alignItems: "center", gap: 6, transition: "opacity 0.15s, transform 0.1s", opacity: disabled ? 0.45 : 1, ...styles[variant], ...style }}>
-      {children}
-    </button>
+    <svg width={w} height={h} style={{ overflow: "visible", flexShrink: 0 }} aria-hidden="true">
+      <path className="spark-line" d={line} fill="none" stroke={T.t3} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={d(delay)} />
+      <circle cx={last[0]} cy={last[1]} r="2.5" fill={T.accent} className="in-pop" style={d(delay + 1000)} />
+    </svg>
   );
-};
+}
 
-const Tag = ({ children, color = T.accent }) => (
-  <span style={{ fontSize: 11, fontWeight: 500, color, background: `${color}18`, border: `1px solid ${color}28`, padding: "3px 9px", borderRadius: 5 }}>{children}</span>
+// ─── PRIMITIVES ────────────────────────────────────────────────────────────────
+const GithubIcon = ({ size = 15 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.73.5.5 5.73.5 12a11.5 11.5 0 007.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 015.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.73 18.27.5 12 .5z" /></svg>
+);
+const GoogleIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.35 11.1H12v2.98h5.35c-.23 1.4-1.66 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.96S8.78 6.26 12 6.26c1.83 0 3.06.78 3.76 1.45l2.56-2.47C16.68 3.7 14.55 2.75 12 2.75 6.9 2.75 2.75 6.9 2.75 12S6.9 21.25 12 21.25c5.34 0 8.88-3.75 8.88-9.04 0-.6-.07-1.06-.15-1.51z" /></svg>
 );
 
-const Badge = ({ n }) => n > 0 ? <span style={{ background: T.accent, color: "#fff", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 99, minWidth: 18, textAlign: "center" }}>{n}</span> : null;
-
-const Card = ({ children, style = {}, onClick }) => (
-  <div onClick={onClick} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, ...style }}>{children}</div>
-);
-
-const Input = ({ label, type = "text", value, onChange, placeholder, icon, style = {} }) => (
-  <div style={{ marginBottom: 16, ...style }}>
-    {label && <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.t3, marginBottom: 6, letterSpacing: 0.3 }}>{label}</label>}
-    <div style={{ position: "relative" }}>
-      {icon && <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: T.t3, pointerEvents: "none" }}>{icon}</span>}
-      <input type={type} value={value} onChange={onChange} placeholder={placeholder} style={{ width: "100%", padding: icon ? "10px 12px 10px 36px" : "10px 12px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.t1, fontSize: 13, outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border} />
-    </div>
-  </div>
-);
-
-// ─── PAGE SECTIONS ─────────────────────────────────────────────────────────────
-function PageHeader({ eyebrow, title, sub }) {
+function Logo({ small }) {
+  const s = small ? 24 : 28;
   return (
-    <div style={{ marginBottom: 28 }}>
-      {eyebrow && <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.accent, marginBottom: 6 }}>{eyebrow}</div>}
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: T.t1, letterSpacing: -0.6, margin: 0, marginBottom: sub ? 6 : 0 }}>{title}</h1>
-      {sub && <p style={{ fontSize: 13, color: T.t3, margin: 0 }}>{sub}</p>}
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+      <div style={{ position: "relative", width: s, height: s, borderRadius: 7, background: T.surface2, border: `1px solid ${T.line2}`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <div style={{ position: "absolute", inset: small ? 4 : 5, borderRadius: "50%", border: "1px solid rgba(240,240,250,0.28)" }} />
+        <div style={{ width: 5, height: 5, borderRadius: "50%", background: T.t1 }} />
+        <div className="logo-orbit" style={{ position: "absolute", inset: small ? 4 : 5 }}><span /></div>
+      </div>
+      <span style={{ fontSize: small ? 14 : 15, fontWeight: 600, letterSpacing: -0.2 }}>CareerOrbit</span>
     </div>
   );
 }
 
-// ─── AUTH PAGE ─────────────────────────────────────────────────────────────────
-function AuthPage({ onAuth }) {
-  const [mode, setMode] = useState("login"); // login | register | forgot
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "", remember: false });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+// Gumball's mark — a serif "G" on the accent colour
+const GMark = ({ size = 24 }) => (
+  <div className="serif" style={{ width: size, height: size, borderRadius: Math.round(size / 4), background: T.accent, color: "#fff", display: "grid", placeItems: "center", fontSize: size * 0.68, lineHeight: 1, flexShrink: 0, paddingTop: size * 0.04 }}>G</div>
+);
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+const Avatar = ({ initials, size = 32, color = T.t2, square }) => (
+  <div style={{ width: size, height: size, borderRadius: square ? Math.round(size / 4) : "50%", background: `${color}1A`, color, border: `1px solid ${color}33`, display: "grid", placeItems: "center", fontSize: Math.round(size * 0.36), fontWeight: 600, flexShrink: 0, letterSpacing: 0.2 }}>{initials}</div>
+);
 
-  const handle = () => {
-    setError("");
-    if (mode === "register") {
-      if (!form.name || !form.email || !form.password) return setError("Please fill in all fields.");
-      if (form.password !== form.confirm) return setError("Passwords do not match.");
-    }
-    if (mode === "login" && (!form.email || !form.password)) return setError("Enter your email and password.");
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onAuth(mode === "register" ? "new" : "existing"); }, 1200);
-  };
+const Btn = ({ children, variant = "secondary", size = "md", onClick, disabled, style, className = "", type = "button", title }) => {
+  const pad = { sm: "6px 11px", md: "8px 14px", lg: "11px 18px" }[size];
+  const fs = { sm: 12.5, md: 13, lg: 14 }[size];
+  return <button type={type} title={title} onClick={onClick} disabled={disabled} className={`btn btn-${variant} ${className}`} style={{ padding: pad, fontSize: fs, ...style }}>{children}</button>;
+};
 
+const IconBtn = ({ icon: I, onClick, title, size = 15 }) => (
+  <button onClick={onClick} title={title} aria-label={title} className="btn btn-ghost" style={{ padding: 6, borderRadius: 6 }}><I size={size} strokeWidth={SW} /></button>
+);
+
+const Pill = ({ children, color = T.t2, dot }) => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color, border: `1px solid ${T.line2}`, borderRadius: 99, padding: "2px 9px", whiteSpace: "nowrap", background: T.surface }}>
+    {dot && <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />}{children}
+  </span>
+);
+
+const Skill = ({ children, have, style }) => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: have === false ? T.t3 : T.t2, background: have === false ? "transparent" : T.surface2, border: `1px ${have === false ? "dashed" : "solid"} ${T.line2}`, borderRadius: 5, padding: "3px 8px", ...style }}>
+    {have === true && <Check size={11} strokeWidth={2.5} color={T.green} />}{children}
+  </span>
+);
+
+const Radio = ({ on }) => (
+  <span style={{ width: 16, height: 16, borderRadius: "50%", border: `1px solid ${on ? T.accent : T.line2}`, display: "grid", placeItems: "center", flexShrink: 0, transition: "border-color .2s" }}>
+    <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.t1, transform: on ? "scale(1)" : "scale(0)", transition: "transform .25s var(--ease)" }} />
+  </span>
+);
+
+const Checkbox = ({ on }) => (
+  <span style={{ width: 16, height: 16, borderRadius: 4, border: `1px solid ${on ? T.accent : T.line2}`, background: on ? T.t1 : "transparent", display: "grid", placeItems: "center", flexShrink: 0, transition: "background .2s, border-color .2s" }}>
+    {on && <Check size={11} strokeWidth={3} color={T.bg} className="check-pop" />}
+  </span>
+);
+
+const Bar = ({ value, color = T.t1, height = 4, delay = 0, mounted = true }) => (
+  <div style={{ height, background: T.line, borderRadius: 2, overflow: "hidden", flex: 1 }}>
+    <div style={{ height: "100%", width: mounted ? `${value}%` : 0, background: color, borderRadius: 2, transition: `width 1s var(--ease) ${delay}ms` }} />
+  </div>
+);
+
+const CardHead = ({ title, meta, action }) => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 18px", borderBottom: `1px solid ${T.line}` }}>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
+      <span style={{ fontSize: 13.5, fontWeight: 600 }}>{title}</span>
+      {meta && <span className="mono" style={{ fontSize: 11.5, color: T.t3 }}>{meta}</span>}
+    </div>
+    {action}
+  </div>
+);
+
+function PageHead({ kicker, title, sub, right }) {
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: "-30%", left: "50%", transform: "translateX(-50%)", width: 700, height: 700, background: "radial-gradient(circle, rgba(91,110,245,0.08) 0%, transparent 65%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: "-10%", right: "10%", width: 400, height: 400, background: "radial-gradient(circle, rgba(155,110,245,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 28, flexWrap: "wrap" }}>
+      <div>
+        {kicker && <div className="label in">{kicker}</div>}
+        <h1 className="serif in" style={{ fontSize: 42, lineHeight: 1.05, margin: "10px 0 0", ...d(40) }}>{title}</h1>
+        {sub && <p className="in" style={{ color: T.t2, margin: "10px 0 0", fontSize: 14, ...d(80) }}>{sub}</p>}
+      </div>
+      {right && <div className="in" style={{ display: "flex", gap: 8, ...d(120) }}>{right}</div>}
+    </div>
+  );
+}
 
-      <div style={{ width: "100%", maxWidth: 420, padding: "0 24px", position: "relative", zIndex: 1 }}>
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "#fff" }}>C</div>
-            <span style={{ fontSize: 20, fontWeight: 800, color: T.t1, letterSpacing: -0.5 }}>CareerPath</span>
-          </div>
-          <p style={{ fontSize: 13, color: T.t3, margin: 0 }}>Your AI-powered career companion</p>
-        </div>
-
-        <Card style={{ padding: "32px 28px" }}>
-          {/* Mode Tabs */}
-          {mode !== "forgot" && (
-            <div style={{ display: "flex", background: T.bg, borderRadius: 9, padding: 3, marginBottom: 24 }}>
-              {[["login", "Sign In"], ["register", "Create Account"]].map(([m, l]) => (
-                <button key={m} onClick={() => { setMode(m); setError(""); }} style={{ flex: 1, padding: "8px", borderRadius: 7, border: "none", background: mode === m ? T.surface : "transparent", color: mode === m ? T.t1 : T.t3, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>{l}</button>
-              ))}
-            </div>
-          )}
-
-          {mode === "forgot" && (
-            <div style={{ marginBottom: 24 }}>
-              <button onClick={() => setMode("login")} style={{ background: "none", border: "none", color: T.t3, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 16 }}>← Back to sign in</button>
-              <div style={{ fontSize: 16, fontWeight: 700, color: T.t1, marginBottom: 4 }}>Reset Password</div>
-              <div style={{ fontSize: 12, color: T.t3 }}>Enter your email and we'll send a reset link.</div>
-            </div>
-          )}
-
-          {error && <div style={{ background: T.redDim, border: `1px solid ${T.red}33`, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: T.red, marginBottom: 16 }}>{error}</div>}
-
-          {mode === "register" && <Input label="Full Name" placeholder="Ahmad Razif" value={form.name} onChange={e => set("name", e.target.value)} icon={<Ic n="person" />} />}
-          <Input label="Email Address" type="email" placeholder="you@email.com" value={form.email} onChange={e => set("email", e.target.value)} icon={<Ic n="mail" />} />
-          {mode !== "forgot" && <Input label="Password" type="password" placeholder="••••••••" value={form.password} onChange={e => set("password", e.target.value)} icon={<Ic n="lock" />} />}
-          {mode === "register" && <Input label="Confirm Password" type="password" placeholder="••••••••" value={form.confirm} onChange={e => set("confirm", e.target.value)} icon={<Ic n="lock" />} />}
-
-          {mode === "login" && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, marginTop: -4 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: T.t3, cursor: "pointer" }}>
-                <input type="checkbox" checked={form.remember} onChange={e => set("remember", e.target.checked)} style={{ accentColor: T.accent }} />
-                Remember me
-              </label>
-              <button onClick={() => setMode("forgot")} style={{ background: "none", border: "none", color: T.accent, fontSize: 12, cursor: "pointer", padding: 0 }}>Forgot password?</button>
-            </div>
-          )}
-
-          <Btn onClick={handle} disabled={loading} size="lg" style={{ width: "100%", justifyContent: "center" }}>
-            {loading ? "Please wait…" : mode === "login" ? "Sign In" : mode === "register" ? "Create Account" : "Send Reset Link"}
-            {!loading && <Ic n="arrow" />}
-          </Btn>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-            <div style={{ flex: 1, height: 1, background: T.border }} />
-            <span style={{ fontSize: 11, color: T.t4 }}>or continue with</span>
-            <div style={{ flex: 1, height: 1, background: T.border }} />
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            {[["G", "Google", "#EA4335"], ["", "GitHub", "#fff"]].map(([ico, lbl, clr]) => (
-              <button key={lbl} style={{ flex: 1, padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 8, color: T.t2, fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-                {lbl === "Google" ? <span style={{ color: clr, fontWeight: 800, fontSize: 13 }}>G</span> : <Ic n="github" />}
-                {lbl} <span style={{ fontSize: 10, color: T.t4 }}>(Soon)</span>
-              </button>
-            ))}
-          </div>
-        </Card>
+function Field({ label, icon: Icon, right, ...props }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5, color: T.t2, marginBottom: 6, fontWeight: 500 }}>
+        <label htmlFor={props.id}>{label}</label>{right}
+      </div>
+      <div style={{ position: "relative" }}>
+        {Icon && <Icon size={15} strokeWidth={SW} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: T.t3, pointerEvents: "none" }} />}
+        <input className="field" style={{ padding: Icon ? "10px 12px 10px 34px" : "10px 12px" }} {...props} />
       </div>
     </div>
   );
 }
 
-// ─── ONBOARDING ────────────────────────────────────────────────────────────────
+// ─── AUTH ──────────────────────────────────────────────────────────────────────
+const ORBITS = [
+  { r: 95, dur: 42, label: "Data Analyst", accent: true },
+  { r: 165, dur: 66, label: "Cloud Engineer", reverse: true },
+  { r: 240, dur: 92, label: "UX Designer" },
+  { r: 320, dur: 124, label: "AI/ML Engineer", reverse: true },
+];
+
+// Thin rings with role labels that stay upright while they orbit "You"
+function OrbitDiagram() {
+  return (
+    <div className="orbit" aria-hidden="true">
+      {ORBITS.map(o => (
+        <div key={o.label} className="orbit-ring" style={{ width: o.r * 2, height: o.r * 2, animationDuration: `${o.dur}s`, animationDirection: o.reverse ? "reverse" : "normal" }}>
+          <div className="orbit-sat" style={{ animationDuration: `${o.dur}s`, animationDirection: o.reverse ? "normal" : "reverse" }}>
+            <span className={`orbit-node ${o.accent ? "accent" : ""}`} />
+            <span className="orbit-tag">{o.label}</span>
+          </div>
+        </div>
+      ))}
+      <div className="orbit-you">You</div>
+    </div>
+  );
+}
+
+const AUTH_COPY = {
+  login: ["Welcome back", "Sign in to pick up where you left off."],
+  register: ["Create your account", "Takes about two minutes to set up."],
+  forgot: ["Reset your password", "We'll email you a link to set a new one."],
+};
+
+function AuthPage({ onAuth }) {
+  const [mode, setMode] = useState("login");
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "", remember: false });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [errKey, setErrKey] = useState(0);
+  const [notice, setNotice] = useState("");
+  const formRef = useRef(null);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const switchMode = (m) => { setMode(m); setError(""); setNotice(""); };
+
+  const fail = (msg) => {
+    setError(msg);
+    setErrKey(k => k + 1);
+    const el = formRef.current;
+    if (el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+  };
+
+  const submit = (e) => {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+    if (mode === "register") {
+      if (!form.name || !form.email || !form.password) return fail("Please fill in all fields.");
+      if (form.password !== form.confirm) return fail("Passwords don't match.");
+    }
+    if (mode === "login" && (!form.email || !form.password)) return fail("Enter your email and password.");
+    if (mode === "forgot" && !form.email) return fail("Enter the email you signed up with.");
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      if (mode === "forgot") { setMode("login"); setNotice(`Reset link sent to ${form.email}.`); return; }
+      onAuth(mode === "register" ? "new" : "existing");
+    }, 1100);
+  };
+
+  const [title, sub] = AUTH_COPY[mode];
+  const cta = { login: "Sign in", register: "Create account", forgot: "Send reset link" }[mode];
+
+  return (
+    <div className="auth-grid">
+      <aside className="auth-side dotgrid" style={{ position: "relative", overflow: "hidden", flexDirection: "column", justifyContent: "space-between", padding: "36px 48px 44px", background: T.surface, borderRight: `1px solid ${T.line}` }}>
+        <div className="in" style={{ position: "relative", zIndex: 1 }}><Logo /></div>
+        <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: "78%" }}><OrbitDiagram /></div>
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <h1 className="serif in" style={{ fontSize: 58, lineHeight: 0.98, margin: 0, maxWidth: 520, ...d(100) }}>
+            Every career has a trajectory. <em style={{ color: T.t3 }}>Find yours.</em>
+          </h1>
+          <p className="in" style={{ color: T.t2, fontSize: 14.5, lineHeight: 1.6, maxWidth: 420, margin: "18px 0 30px", ...d(180) }}>
+            Map your skills to real roles in the Malaysian market, see exactly what's missing, and close the gap with a mentor that knows your profile.
+          </p>
+          <div className="in" style={{ display: "flex", gap: 36, paddingTop: 22, borderTop: `1px solid ${T.line}`, ...d(260) }}>
+            {[["6", "career tracks"], ["60+", "skills mapped"], ["24/7", "AI mentor"]].map(([n, l]) => (
+              <div key={l}>
+                <div className="mono" style={{ fontSize: 20, color: T.t1 }}>{n}</div>
+                <div className="label" style={{ marginTop: 4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      <main style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 24px" }}>
+        <div style={{ width: "100%", maxWidth: 360 }}>
+          <div className="auth-mobile-logo" style={{ marginBottom: 40 }}><Logo /></div>
+
+          <div key={mode} className="in-r">
+            <h2 className="serif" style={{ fontSize: 38, lineHeight: 1.05, margin: "0 0 8px" }}>{title}</h2>
+            <p style={{ color: T.t2, margin: "0 0 28px" }}>{sub}</p>
+          </div>
+
+          {error && <div key={errKey} className="in-pop" role="alert" style={{ border: `1px solid ${T.red}40`, background: `${T.red}12`, color: "#FF9A9D", borderRadius: 7, padding: "9px 12px", fontSize: 13, marginBottom: 16 }}>{error}</div>}
+          {notice && <div className="in-pop" style={{ border: `1px solid ${T.green}40`, background: `${T.green}12`, color: T.green, borderRadius: 7, padding: "9px 12px", fontSize: 13, marginBottom: 16, display: "flex", gap: 8, alignItems: "center" }}><Check size={14} strokeWidth={2.5} /> {notice}</div>}
+
+          <form ref={formRef} onSubmit={submit} noValidate>
+            <div key={mode} className="in-fade">
+              {mode === "register" && <Field id="name" label="Full name" icon={User} placeholder="Ahmad Razif" autoComplete="name" value={form.name} onChange={e => set("name", e.target.value)} />}
+              <Field id="email" label="Email" icon={Mail} type="email" placeholder="you@university.edu.my" autoComplete="email" value={form.email} onChange={e => set("email", e.target.value)} />
+              {mode !== "forgot" && (
+                <Field id="password" label="Password" icon={Lock} type="password" placeholder="••••••••" autoComplete={mode === "login" ? "current-password" : "new-password"} value={form.password} onChange={e => set("password", e.target.value)}
+                  right={mode === "login" && <button type="button" className="link" style={{ fontSize: 12.5 }} onClick={() => switchMode("forgot")}>Forgot?</button>} />
+              )}
+              {mode === "register" && <Field id="confirm" label="Confirm password" icon={Lock} type="password" placeholder="••••••••" autoComplete="new-password" value={form.confirm} onChange={e => set("confirm", e.target.value)} />}
+              {mode === "login" && (
+                <button type="button" onClick={() => set("remember", !form.remember)} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: T.t2, cursor: "pointer", margin: "2px 0 18px", background: "none", border: "none", padding: 0 }}>
+                  <Checkbox on={form.remember} /> Keep me signed in
+                </button>
+              )}
+            </div>
+            <Btn type="submit" variant="primary" size="lg" disabled={loading} style={{ width: "100%", marginTop: 4 }}>
+              {loading ? <><Loader2 size={15} className="spin" /> Please wait</> : <>{cta} <ArrowRight size={15} className="arrow" /></>}
+            </Btn>
+          </form>
+
+          {mode !== "forgot" && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0" }}>
+                <div style={{ flex: 1, height: 1, background: T.line }} />
+                <span className="label">or</span>
+                <div style={{ flex: 1, height: 1, background: T.line }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Btn variant="secondary" title="Coming soon" disabled><GoogleIcon /> Google</Btn>
+                <Btn variant="secondary" title="Coming soon" disabled><GithubIcon size={14} /> GitHub</Btn>
+              </div>
+            </>
+          )}
+
+          <p style={{ marginTop: 28, fontSize: 13, color: T.t3 }}>
+            {mode === "login"
+              ? <>New to CareerOrbit? <button className="link" style={{ color: T.t1 }} onClick={() => switchMode("register")}>Create an account</button></>
+              : <>{mode === "forgot" ? "Remembered it?" : "Already have an account?"} <button className="link" style={{ color: T.t1 }} onClick={() => switchMode("login")}>Sign in</button></>}
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ─── SETUP (onboarding + resume import) ────────────────────────────────────────
+const SETUP_STEPS = [["Status", "Intern or job seeker"], ["Field", "Your area of study"], ["Skills", "What you can do today"], ["Interests", "Where you want to go"], ["Resume", "Import or start fresh"]];
+
+function SetupLayout({ step, children }) {
+  const last = SETUP_STEPS.length - 1;
+  return (
+    <div className="setup-grid">
+      <aside className="setup-rail" style={{ background: T.surface, borderRight: `1px solid ${T.line}`, padding: "32px 28px" }}>
+        <Logo />
+        <div className="label" style={{ margin: "56px 0 20px" }}>Profile setup</div>
+        <div>
+          {SETUP_STEPS.map(([t, s], i) => {
+            const state = i < step ? "done" : i === step ? "active" : "todo";
+            return (
+              <div key={t} style={{ display: "flex", gap: 14, position: "relative", paddingBottom: i < last ? 26 : 0 }}>
+                {i < last && (
+                  <div style={{ position: "absolute", left: 11, top: 27, bottom: 3, width: 1, background: T.line2 }}>
+                    <div style={{ width: "100%", height: i < step ? "100%" : "0%", background: T.t2, transition: "height .5s var(--ease)" }} />
+                  </div>
+                )}
+                <div className="mono" style={{ width: 23, height: 23, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 11, border: `1px solid ${state === "todo" ? T.line2 : T.t1}`, background: state === "done" ? T.t1 : "transparent", color: state === "done" ? T.bg : state === "active" ? T.t1 : T.t3, transition: "all .3s" }}>
+                  {state === "done" ? <Check size={12} strokeWidth={2.5} className="check-pop" /> : i + 1}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 500, color: state === "todo" ? T.t3 : T.t1, transition: "color .3s" }}>{t}</div>
+                  <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>{s}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: "auto", paddingTop: 32, fontSize: 12.5, color: T.t3, lineHeight: 1.6 }}>You can change any of this later from your profile.</div>
+      </aside>
+      <main style={{ padding: "72px 64px 56px", overflowY: "auto" }}>
+        <div style={{ maxWidth: 640 }}>{children}</div>
+      </main>
+    </div>
+  );
+}
+
 function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1);
   const [data, setData] = useState({ status: "", field: "", skills: [], interests: [], customSkill: "", customInterest: "" });
 
   const steps = [
-    { title: "What's your current status?", sub: "This helps us tailor your career recommendations.", field: "status", opts: [{ v: "Intern", e: "🎓", d: "Currently interning or seeking internship roles" }, { v: "Job Seeker", e: "💼", d: "Looking for full-time employment opportunities" }], single: true },
-    { title: "What's your study or career field?", sub: "We'll use this to map skills and career paths.", field: "field", opts: Object.keys(FIELD_SKILLS).map(f => ({ v: f, e: "📚" })), single: true },
-    { title: "Select your skills", sub: "Pick all that apply — you can add custom ones too.", field: "skills", opts: (FIELD_SKILLS[data.field] || []).map(s => ({ v: s })), single: false, custom: "customSkill" },
-    { title: "What are your interests?", sub: "We'll match you with careers that fit your passions.", field: "interests", opts: (FIELD_INTERESTS[data.field] || []).map(s => ({ v: s })), single: false, custom: "customInterest" },
+    { title: "Where are you right now?", sub: "We'll tune recommendations to your stage.", field: "status", kind: "status" },
+    { title: "What do you study, or work in?", sub: "This sets which skills and career paths we map for you.", field: "field", kind: "field" },
+    { title: "What can you already do?", sub: "Pick everything that applies, and add anything we missed.", field: "skills", kind: "multi", opts: FIELD_SKILLS[data.field] || [], custom: "customSkill" },
+    { title: "What pulls you in?", sub: "Your interests decide which roles we show you first.", field: "interests", kind: "multi", opts: FIELD_INTERESTS[data.field] || [], custom: "customInterest" },
   ];
 
   const s = steps[step];
   const val = data[s.field];
-  const canNext = s.single ? val !== "" : val.length > 0;
+  const canNext = s.kind === "multi" ? val.length > 0 : val !== "";
+  const go = (next) => { setDir(next > step ? 1 : -1); setStep(next); };
+  const next = () => { if (!canNext) return; if (step < steps.length - 1) go(step + 1); else onDone(data); };
 
-  const toggle = (v) => {
-    if (s.single) { setData(d => ({ ...d, [s.field]: v })); }
-    else { setData(d => ({ ...d, [s.field]: d[s.field].includes(v) ? d[s.field].filter(x => x !== v) : [...d[s.field], v] })); }
+  const pick = (v) => {
+    if (s.kind !== "multi") setData(dd => ({ ...dd, [s.field]: v }));
+    else setData(dd => ({ ...dd, [s.field]: dd[s.field].includes(v) ? dd[s.field].filter(x => x !== v) : [...dd[s.field], v] }));
   };
-
   const addCustom = () => {
     const cv = data[s.custom].trim();
-    if (cv && !data[s.field].includes(cv)) {
-      setData(d => ({ ...d, [s.field]: [...d[s.field], cv], [s.custom]: "" }));
-    }
+    if (cv && !data[s.field].includes(cv)) setData(dd => ({ ...dd, [s.field]: [...dd[s.field], cv], [s.custom]: "" }));
   };
+  const multiOpts = s.kind === "multi" ? [...s.opts, ...val.filter(v => !s.opts.includes(v))] : [];
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "radial-gradient(ellipse 70% 40% at 50% 0%, rgba(91,110,245,0.07), transparent)", pointerEvents: "none" }} />
-      <div style={{ width: "100%", maxWidth: 580, padding: "0 24px", position: "relative", zIndex: 1 }}>
-        {/* Progress */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 40 }}>
-          {steps.map((_, i) => <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: i <= step ? T.accent : T.border, transition: "background 0.3s" }} />)}
-        </div>
+    <SetupLayout step={step}>
+      <div key={step} className={dir > 0 ? "in-r" : "in-l"}>
+        <div className="label">Step {step + 1} of {SETUP_STEPS.length}</div>
+        <h1 className="serif" style={{ fontSize: 46, lineHeight: 1.04, margin: "12px 0 10px" }}>{s.title}</h1>
+        <p style={{ color: T.t2, margin: "0 0 32px", fontSize: 14.5 }}>{s.sub}</p>
 
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: T.accent, textTransform: "uppercase", marginBottom: 8 }}>Step {step + 1} of {steps.length}</div>
-        <h2 style={{ fontSize: 26, fontWeight: 800, color: T.t1, letterSpacing: -0.5, marginBottom: 8 }}>{s.title}</h2>
-        <p style={{ fontSize: 13, color: T.t3, marginBottom: 28 }}>{s.sub}</p>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: s.custom ? 16 : 32 }}>
-          {s.opts.map(opt => {
-            const active = s.single ? val === opt.v : val.includes(opt.v);
-            return (
-              <button key={opt.v} onClick={() => toggle(opt.v)} style={{ padding: s.single ? "12px 18px" : "9px 16px", borderRadius: 10, border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? T.accentGlow : T.surface, color: active ? T.accentLight : T.t2, fontSize: 13, fontWeight: active ? 600 : 400, cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: opt.e ? 8 : 6 }}>
-                {opt.e && <span>{opt.e}</span>}
-                {active && !s.single && <Ic n="check" />}
-                <span>{opt.v}</span>
-                {s.single && opt.d && <span style={{ fontSize: 11, color: T.t3, marginLeft: 4 }}>— {opt.d}</span>}
-              </button>
-            );
-          })}
-        </div>
-
-        {s.custom && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
-            <input value={data[s.custom]} onChange={e => setData(d => ({ ...d, [s.custom]: e.target.value }))} onKeyDown={e => e.key === "Enter" && addCustom()} placeholder={`Add custom ${s.field === "skills" ? "skill" : "interest"}…`} style={{ flex: 1, padding: "9px 12px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.t1, fontSize: 13, outline: "none" }} />
-            <Btn onClick={addCustom} variant="ghost" size="sm"><Ic n="plus" /> Add</Btn>
-          </div>
-        )}
-
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          {step > 0 ? <Btn variant="secondary" onClick={() => setStep(s => s - 1)}>← Back</Btn> : <div />}
-          <Btn onClick={() => canNext && (step < steps.length - 1 ? setStep(s => s + 1) : onDone(data))} disabled={!canNext} size="lg">
-            {step === steps.length - 1 ? "Set Up Profile" : "Continue"} <Ic n="arrow" />
-          </Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── RESUME UPLOAD ─────────────────────────────────────────────────────────────
-function ResumeUpload({ onDone }) {
-  const [mode, setMode] = useState(null); // null | uploading | parsed | manual
-  const [progress, setProgress] = useState(0);
-
-  const handleUpload = () => {
-    setMode("uploading");
-    const iv = setInterval(() => setProgress(p => { if (p >= 100) { clearInterval(iv); setMode("parsed"); return 100; } return p + 8; }), 120);
-  };
-
-  return (
-    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <div style={{ width: "100%", maxWidth: 560, padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: T.accent, textTransform: "uppercase", marginBottom: 8 }}>Profile Setup</div>
-          <h2 style={{ fontSize: 26, fontWeight: 800, color: T.t1, letterSpacing: -0.5, marginBottom: 8 }}>Initialize Your Profile</h2>
-          <p style={{ fontSize: 13, color: T.t3 }}>Upload your resume for automatic setup, or build manually.</p>
-        </div>
-
-        {mode === null && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Card style={{ padding: "28px", cursor: "pointer", border: `1.5px solid ${T.accent}`, background: T.accentGlow2 }} onClick={handleUpload}>
-              <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: T.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📄</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: T.t1, marginBottom: 4 }}>Upload Resume (PDF)</div>
-                  <div style={{ fontSize: 12, color: T.t3, lineHeight: 1.6 }}>AI automatically extracts your name, education, skills, experience, and projects to build your profile instantly.</div>
-                  <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {["Name", "Education", "Skills", "Experience", "Certifications", "Projects"].map(t => <Tag key={t}>{t}</Tag>)}
+        {s.kind === "status" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[{ v: "Intern", icon: GraduationCap, desc: "Still studying, or looking for an internship" }, { v: "Job Seeker", icon: Briefcase, desc: "Graduated and ready for a full-time role" }].map((o, i) => {
+              const on = val === o.v;
+              const I = o.icon;
+              return (
+                <button key={o.v} onClick={() => pick(o.v)} className={`option in ${on ? "on" : ""}`} style={{ ...d(i * 60), textAlign: "left", padding: 18, borderRadius: 10, border: `1px solid ${on ? T.accent : T.line2}`, background: on ? "rgba(91,110,245,0.10)" : T.surface, color: T.t1, cursor: "pointer", display: "flex", flexDirection: "column", gap: 28 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}><I size={20} strokeWidth={1.5} color={on ? T.accent : T.t2} /><Radio on={on} /></div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>{o.v}</div>
+                    <div style={{ fontSize: 13, color: T.t3, marginTop: 4, lineHeight: 1.45 }}>{o.desc}</div>
                   </div>
-                </div>
-              </div>
-            </Card>
-            <Card style={{ padding: "20px", cursor: "pointer" }} onClick={() => onDone()}>
-              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                <div style={{ width: 44, height: 44, borderRadius: 11, background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>✏️</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: T.t1, marginBottom: 2 }}>Set Up Manually</div>
-                  <div style={{ fontSize: 12, color: T.t3 }}>Fill in your profile details step by step.</div>
-                </div>
-                <div style={{ marginLeft: "auto", color: T.t3 }}><Ic n="chevRight" /></div>
-              </div>
-            </Card>
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {mode === "uploading" && (
-          <Card style={{ padding: "36px 28px", textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 20 }}>⚙️</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: T.t1, marginBottom: 6 }}>Parsing your resume…</div>
-            <div style={{ fontSize: 12, color: T.t3, marginBottom: 20 }}>Extracting skills, experience, and education</div>
-            <div style={{ height: 6, background: T.border, borderRadius: 99, overflow: "hidden" }}>
-              <div style={{ width: `${progress}%`, height: "100%", background: `linear-gradient(90deg, ${T.accent}, ${T.purple})`, borderRadius: 99, transition: "width 0.1s" }} />
-            </div>
-            <div style={{ fontSize: 11, color: T.t3, marginTop: 8 }}>{progress}%</div>
-          </Card>
+        {s.kind === "field" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {Object.keys(FIELD_SKILLS).map((f, i) => {
+              const on = val === f;
+              const I = FIELD_ICONS[f];
+              return (
+                <button key={f} onClick={() => pick(f)} className={`option in ${on ? "on" : ""}`} style={{ ...d(i * 30), display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1px solid ${on ? T.accent : T.line2}`, background: on ? "rgba(91,110,245,0.10)" : "transparent", color: on ? T.accentLight : T.t2, cursor: "pointer", fontSize: 13.5, textAlign: "left" }}>
+                  <I size={16} strokeWidth={SW} color={on ? T.accent : T.t3} />
+                  <span style={{ flex: 1 }}>{f}</span>
+                  <Radio on={on} />
+                </button>
+              );
+            })}
+          </div>
         )}
 
-        {mode === "parsed" && (
-          <Card style={{ padding: "28px" }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 99, background: T.greenDim, display: "flex", alignItems: "center", justifyContent: "center", color: T.green }}><Ic n="check" /></div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.t1 }}>Resume parsed successfully!</div>
-                <div style={{ fontSize: 12, color: T.t3 }}>Review the extracted data below</div>
-              </div>
+        {s.kind === "multi" && (
+          <>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {multiOpts.map((o, i) => {
+                const on = val.includes(o);
+                return (
+                  <button key={o} onClick={() => pick(o)} className={`toggle in-pop ${on ? "on" : ""}`} style={d(i * 25)}>
+                    {on ? <Check size={13} strokeWidth={2.5} className="check-pop" /> : <Plus size={13} strokeWidth={SW} color={T.t3} />}
+                    {o}
+                  </button>
+                );
+              })}
             </div>
-            {[["Name", "Ahmad Razif bin Abdullah"], ["Email", "ahmad.razif@email.com"], ["Education", "B.Sc. Computer Science, UPM (2021–2025)"], ["Skills extracted", "Python, SQL, Tableau, Pandas, Machine Learning, Git"]].map(([k, v]) => (
-              <div key={k} style={{ display: "flex", padding: "8px 0", borderBottom: `1px solid ${T.border}`, gap: 12 }}>
-                <span style={{ fontSize: 12, color: T.t3, minWidth: 120 }}>{k}</span>
-                <span style={{ fontSize: 12, color: T.t1 }}>{v}</span>
-              </div>
-            ))}
-            <div style={{ marginTop: 20 }}><Btn onClick={() => onDone()} size="lg" style={{ width: "100%", justifyContent: "center" }}>Confirm & Enter Dashboard <Ic n="arrow" /></Btn></div>
-          </Card>
+            <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+              <input className="field" style={{ padding: "9px 12px", maxWidth: 320 }} value={data[s.custom]} onChange={e => setData(dd => ({ ...dd, [s.custom]: e.target.value }))} onKeyDown={e => e.key === "Enter" && addCustom()} placeholder={`Add another ${s.field === "skills" ? "skill" : "interest"}`} />
+              <Btn onClick={addCustom} disabled={!data[s.custom].trim()}>Add</Btn>
+            </div>
+          </>
         )}
       </div>
-    </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 44, paddingTop: 20, borderTop: `1px solid ${T.line}` }}>
+        {step > 0 ? <Btn variant="ghost" onClick={() => go(step - 1)}>Back</Btn> : <span />}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {s.kind === "multi" && <span className="mono" style={{ fontSize: 12, color: T.t3 }}>{val.length} selected</span>}
+          <Btn variant="accent" size="lg" disabled={!canNext} onClick={next}>Continue <ArrowRight size={15} className="arrow" /></Btn>
+        </div>
+      </div>
+    </SetupLayout>
   );
 }
 
-// ─── MAIN SHELL ────────────────────────────────────────────────────────────────
+const PARSE_FIELDS = ["Contact details", "Education", "Experience", "Skills", "Certifications", "Projects"];
+
+function ResumeUpload({ onDone }) {
+  const [mode, setMode] = useState(null); // null | uploading | parsed
+  const [progress, setProgress] = useState(0);
+  const ivRef = useRef(null);
+
+  useEffect(() => () => clearInterval(ivRef.current), []);
+
+  const upload = () => {
+    clearInterval(ivRef.current);
+    setMode("uploading");
+    setProgress(0);
+    ivRef.current = setInterval(() => setProgress(p => {
+      if (p >= 100) { clearInterval(ivRef.current); setTimeout(() => setMode("parsed"), 300); return 100; }
+      return Math.min(100, p + 3);
+    }), 70);
+  };
+
+  return (
+    <SetupLayout step={mode === "parsed" ? 5 : 4}>
+      <div className="label in">Step 5 of 5</div>
+      <h1 className="serif in" style={{ fontSize: 46, lineHeight: 1.04, margin: "12px 0 10px", ...d(40) }}>Bring your resume along</h1>
+      <p className="in" style={{ color: T.t2, margin: "0 0 32px", fontSize: 14.5, lineHeight: 1.6, ...d(80) }}>We'll read it and fill in your profile. You'll review everything before anything is saved.</p>
+
+      {mode === null && (
+        <>
+          <button className="dropzone in" onClick={upload} style={{ ...d(140), width: "100%", padding: "44px 24px", borderRadius: 10, border: `1px dashed ${T.line2}`, background: T.surface, color: T.t1, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+            <div className="dz-ic" style={{ width: 44, height: 44, borderRadius: 10, border: `1px solid ${T.line2}`, background: T.bg, display: "grid", placeItems: "center", color: T.t2 }}><FileUp size={20} strokeWidth={1.5} /></div>
+            <div style={{ fontSize: 14.5 }}>Drop your resume here, or <span style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>browse</span></div>
+            <div className="label">PDF or DOCX · up to 5 MB</div>
+          </button>
+          <div className="in" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18, fontSize: 13, ...d(200) }}>
+            <span style={{ color: T.t3 }}>Rather type it in yourself?</span>
+            <button className="link" onClick={() => onDone()} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.t1 }}>Set up manually <ArrowRight size={14} /></button>
+          </div>
+        </>
+      )}
+
+      {mode === "uploading" && (
+        <div className="card in-pop" style={{ padding: 24, display: "flex", gap: 28 }}>
+          <div className="scan-doc">
+            {[90, 55, 100, 80, 95, 45, 85, 70, 60].map((w, i) => <div key={i} className="skel" style={{ height: 4, width: `${w}%` }} />)}
+            <div className="scan-line" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 10 }}>
+              <span className="mono" style={{ color: T.t1 }}>ahmad-razif-resume.pdf</span>
+              <span className="mono" style={{ color: T.t3 }}>{progress}%</span>
+            </div>
+            <div style={{ height: 2, background: T.line, borderRadius: 2, overflow: "hidden", marginBottom: 18 }}>
+              <div style={{ width: `${progress}%`, height: "100%", background: T.accent, transition: "width .12s linear" }} />
+            </div>
+            {PARSE_FIELDS.map((f, i) => {
+              const at = (i + 1) * 15;
+              const state = progress >= at ? "done" : progress >= at - 15 ? "active" : "todo";
+              return (
+                <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", fontSize: 13, color: state === "todo" ? T.t3 : T.t1, transition: "color .2s" }}>
+                  {state === "done" ? <Check size={14} strokeWidth={2.5} color={T.green} className="check-pop" /> : state === "active" ? <Loader2 size={14} className="spin" color={T.t2} /> : <Circle size={14} strokeWidth={SW} color={T.t4} />}
+                  <span style={{ flex: 1 }}>{f}</span>
+                  <span className="mono" style={{ fontSize: 11.5, color: T.t3 }}>{state === "done" ? "found" : state === "active" ? "reading" : ""}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {mode === "parsed" && (
+        <div className="card in-pop" style={{ overflow: "hidden" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", padding: "16px 20px", borderBottom: `1px solid ${T.line}` }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${T.green}55`, display: "grid", placeItems: "center", color: T.green }}>
+              <svg className="draw" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Here's what we found</div>
+              <div style={{ fontSize: 12.5, color: T.t3 }}>6 sections · edit anything later from your profile</div>
+            </div>
+          </div>
+          {[["Name", "Ahmad Razif bin Abdullah"], ["Email", "ahmad.razif@email.com"], ["Education", "B.Sc. Computer Science, UPM (2021–2025)"], ["Experience", "Data Analyst Intern, TechCorp Sdn Bhd"], ["Skills", "Python, SQL, Tableau, Pandas, Machine Learning, Git"]].map(([k, v], i) => (
+            <div key={k} className="in" style={{ display: "grid", gridTemplateColumns: "130px 1fr", padding: "11px 20px", borderBottom: `1px solid ${T.line}`, fontSize: 13, ...d(120 + i * 70) }}>
+              <span className="label" style={{ paddingTop: 2 }}>{k}</span>
+              <span>{v}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "14px 20px" }}>
+            <Btn variant="ghost" onClick={upload}><RotateCw size={14} strokeWidth={SW} /> Re-upload</Btn>
+            <Btn variant="accent" onClick={() => onDone()}>Looks right, continue <ArrowRight size={14} className="arrow" /></Btn>
+          </div>
+        </div>
+      )}
+    </SetupLayout>
+  );
+}
+
+// ─── SHELL ─────────────────────────────────────────────────────────────────────
+const NAV = [
+  { group: "Workspace", items: [{ id: "dashboard", label: "Dashboard", icon: House }, { id: "discover", label: "Discover", icon: Compass }, { id: "progression", label: "Career map", icon: MapIcon }] },
+  { group: "You", items: [{ id: "profile", label: "Profile", icon: User }, { id: "portfolio", label: "Portfolio", icon: FolderOpen }, { id: "resume", label: "Resume builder", icon: FileText }] },
+  { group: "Network", items: [{ id: "inbox", label: "Inbox", icon: MessageSquare, badge: 3 }] },
+];
+const GROUP_H = 34; // label row height
+const ITEM_H = 36; // 34px item + 2px gap
+
 function Shell({ onLogout }) {
   const [page, setPage] = useState("dashboard");
-  const [favs, setFavs] = useState([1, 2]);
+  const [favs, setFavs] = useState([2, 6]);
   const [gumballOpen, setGumballOpen] = useState(false);
   const [gumballMin, setGumballMin] = useState(false);
-  const [unreadMsgs] = useState(3);
 
-  const nav = [
-    { id: "dashboard", label: "Dashboard", icon: "home" },
-    { id: "discover", label: "Discover", icon: "compass" },
-    { id: "profile", label: "Profile", icon: "user" },
-    { id: "portfolio", label: "Portfolio", icon: "folder" },
-    { id: "resume", label: "Resume", icon: "file" },
-    { id: "inbox", label: "Inbox", icon: "message", badge: unreadMsgs },
-    { id: "progression", label: "Career Map", icon: "map" },
-  ];
+  const openGumball = useCallback(() => { setGumballOpen(true); setGumballMin(false); }, []);
+
+  // Keyboard: "g" opens Gumball, Ctrl/Cmd+K jumps to Discover
+  useEffect(() => {
+    const onKey = (e) => {
+      const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName);
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPage("discover"); }
+      else if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && e.key === "g") openGumball();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openGumball]);
+
+  // Sliding highlight: compute the active item's offset from the fixed row heights
+  let indTop = 0;
+  let group = "";
+  for (const g of NAV) {
+    indTop += GROUP_H;
+    const i = g.items.findIndex(x => x.id === page);
+    if (i >= 0) { indTop += i * ITEM_H; group = g.group; break; }
+    indTop += g.items.length * ITEM_H;
+  }
+  const current = NAV.flatMap(g => g.items).find(x => x.id === page);
+  const fullBleed = page === "inbox";
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: T.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: T.t1, overflow: "hidden" }}>
-      {/* SIDEBAR */}
-      <nav style={{ width: 210, background: T.surface, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        {/* Logo */}
-        <div style={{ padding: "22px 18px 18px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "#fff" }}>C</div>
-            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: -0.4 }}>CareerPath</div>
-          </div>
-        </div>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      <nav style={{ width: 232, borderRight: `1px solid ${T.line}`, display: "flex", flexDirection: "column", flexShrink: 0, padding: "18px 12px 14px" }}>
+        <div style={{ padding: "0 6px 18px" }}><Logo small /></div>
 
-        {/* Nav items */}
-        <div style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
-          {nav.map(item => (
-            <button key={item.id} onClick={() => setPage(item.id)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: page === item.id ? T.accentGlow : "transparent", color: page === item.id ? T.accentLight : T.t3, fontSize: 13, fontWeight: page === item.id ? 600 : 400, borderLeft: `2px solid ${page === item.id ? T.accent : "transparent"}`, transition: "all 0.15s", textAlign: "left", width: "100%", justifyContent: "flex-start" }}>
-              <Ic n={item.icon} />
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge > 0 && <Badge n={item.badge} />}
-            </button>
+        <button onClick={() => setPage("discover")} className="field" style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", color: T.t3, cursor: "pointer", textAlign: "left", background: T.surface }}>
+          <Search size={14} strokeWidth={SW} /><span style={{ flex: 1, fontSize: 13 }}>Search careers</span><span className="kbd">Ctrl K</span>
+        </button>
+
+        <div style={{ position: "relative", flex: 1, marginTop: 6, overflowY: "auto" }}>
+          <div className="nav-indicator" style={{ transform: `translateY(${indTop}px)` }} />
+          {NAV.map(g => (
+            <div key={g.group}>
+              <div className="label" style={{ height: GROUP_H, display: "flex", alignItems: "flex-end", padding: "0 10px 8px" }}>{g.group}</div>
+              {g.items.map(item => {
+                const I = item.icon;
+                return (
+                  <div key={item.id} style={{ height: ITEM_H }}>
+                    <button onClick={() => setPage(item.id)} className={`nav-item ${page === item.id ? "active" : ""}`}>
+                      <I size={16} strokeWidth={SW} />
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      {item.badge > 0 && <span className="mono" style={{ fontSize: 11, color: "#fff", background: T.accent, borderRadius: 4, padding: "0 5px", lineHeight: "16px" }}>{item.badge}</span>}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           ))}
         </div>
 
-        {/* Gumball button */}
-        <div style={{ padding: "12px 10px", borderTop: `1px solid ${T.border}` }}>
-          <button onClick={() => { setGumballOpen(true); setGumballMin(false); }} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 10px", borderRadius: 8, border: `1px solid ${T.accent}44`, background: T.accentGlow2, color: T.accentLight, fontSize: 13, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "flex-start" }}>
-            <span style={{ fontSize: 16 }}>🤖</span> Ask Gumball
-          </button>
-        </div>
+        <button onClick={openGumball} className="nav-item" style={{ height: 40, border: `1px solid ${T.line}`, background: T.surface, marginBottom: 10 }}>
+          <GMark size={20} /><span style={{ flex: 1, color: T.t1 }}>Ask Gumball</span><span className="kbd">G</span>
+        </button>
 
-        {/* User */}
-        <div style={{ padding: "12px 10px 16px", borderTop: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: T.bg, borderRadius: 9 }}>
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, #EC4899)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>A</div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Ahmad Razif</div>
-              <div style={{ fontSize: 10, color: T.t3 }}>Job Seeker</div>
-            </div>
-            <button onClick={onLogout} style={{ background: "none", border: "none", color: T.t4, cursor: "pointer", padding: 2 }}><Ic n="settings" /></button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px 0", borderTop: `1px solid ${T.line}` }}>
+          <Avatar initials="AR" size={30} color={T.accent} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Ahmad Razif</div>
+            <div style={{ fontSize: 11.5, color: T.t3 }}>Job seeker · Data</div>
           </div>
+          <IconBtn icon={LogOut} title="Sign out" onClick={onLogout} size={14} />
         </div>
       </nav>
 
-      {/* MAIN CONTENT */}
-      <main style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
-        {/* Top bar */}
-        <div style={{ height: 54, borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", padding: "0 28px", justifyContent: "space-between", flexShrink: 0, background: T.surface }}>
-          <div style={{ fontSize: 13, color: T.t3 }}>
-            {nav.find(n => n.id === page)?.label}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <header style={{ height: 52, borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", padding: "0 28px", justifyContent: "space-between", flexShrink: 0 }}>
+          <div style={{ fontSize: 13, color: T.t3, display: "flex", gap: 8, alignItems: "center" }}>
+            <span>{group}</span><span style={{ color: T.t4 }}>/</span>
+            <span key={page} className="in-fade" style={{ color: T.t1 }}>{current?.label}</span>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <button style={{ background: "none", border: "none", color: T.t3, cursor: "pointer", position: "relative" }}>
-              <Ic n="bell" />
-              <span style={{ position: "absolute", top: -2, right: -2, width: 7, height: 7, background: T.accent, borderRadius: "50%", border: `1px solid ${T.surface}` }} />
-            </button>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, #EC4899)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>A</div>
+          <div style={{ position: "relative" }}>
+            <IconBtn icon={Bell} title="Notifications" />
+            <span style={{ position: "absolute", top: 6, right: 7, width: 6, height: 6, background: T.accent, borderRadius: "50%", boxShadow: `0 0 0 2px ${T.bg}`, pointerEvents: "none" }} />
           </div>
-        </div>
+        </header>
 
-        {/* Page content */}
-        <div style={{ flex: 1, overflow: "auto", padding: "28px 32px" }}>
-          {page === "dashboard" && <DashboardPage favs={favs} />}
-          {page === "discover" && <DiscoverPage favs={favs} setFavs={setFavs} />}
-          {page === "profile" && <ProfilePage />}
-          {page === "portfolio" && <PortfolioPage />}
-          {page === "resume" && <ResumePage />}
-          {page === "inbox" && <InboxPage />}
-          {page === "progression" && <ProgressionPage />}
+        <div style={{ flex: 1, overflow: fullBleed ? "hidden" : "auto" }}>
+          <div key={page} className="in" style={fullBleed ? { height: "100%" } : { maxWidth: 1120, margin: "0 auto", padding: "36px 40px 64px" }}>
+            {page === "dashboard" && <DashboardPage favs={favs} onAskGumball={openGumball} onNavigate={setPage} />}
+            {page === "discover" && <DiscoverPage favs={favs} setFavs={setFavs} />}
+            {page === "profile" && <ProfilePage />}
+            {page === "portfolio" && <PortfolioPage />}
+            {page === "resume" && <ResumePage />}
+            {page === "inbox" && <InboxPage />}
+            {page === "progression" && <ProgressionPage onAskGumball={openGumball} />}
+          </div>
         </div>
       </main>
 
-      {/* GUMBALL AI CHAT */}
       {gumballOpen && <GumballChat minimized={gumballMin} onMinimize={() => setGumballMin(m => !m)} onClose={() => setGumballOpen(false)} />}
     </div>
   );
 }
 
 // ─── DASHBOARD ─────────────────────────────────────────────────────────────────
-function DashboardPage({ favs }) {
+function DashboardPage({ favs, onAskGumball, onNavigate }) {
+  const mounted = useMounted(120);
+  const [tasks, setTasks] = useState([
+    { text: "Finish the AWS Cloud Practitioner course", done: false, p: "High", due: "Fri" },
+    { text: "Add Churn Predictor to portfolio", done: true, p: "Med", due: "Done" },
+    { text: "Reply to Sarah Lim about the Grab referral", done: false, p: "High", due: "Today" },
+    { text: "Rewrite LinkedIn headline", done: false, p: "Low", due: "Next wk" },
+  ]);
+  const toggleTask = (i) => setTasks(ts => ts.map((t, j) => j === i ? { ...t, done: !t.done } : t));
+  const pending = tasks.filter(t => !t.done).length;
+
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const date = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
   const stats = [
-    { label: "Profile Views", v: "128", delta: "+23%", color: T.accent, e: "👁" },
-    { label: "Resume Downloads", v: "34", delta: "+8%", color: T.green, e: "📄" },
-    { label: "Skill Coverage", v: "76%", delta: "+5pts", color: T.amber, e: "⚡" },
-    { label: "Saved Careers", v: favs.length, delta: "Active", color: T.purple, e: "⭐" },
+    { label: "Profile views", v: 128, delta: "+23%", spark: [40, 52, 48, 70, 66, 92, 128] },
+    { label: "Resume downloads", v: 34, delta: "+8%", spark: [12, 15, 14, 20, 24, 29, 34] },
+    { label: "Skill coverage", v: 76, suffix: "%", delta: "+5 pts", spark: [52, 55, 60, 61, 66, 71, 76] },
+    { label: "Saved careers", v: favs.length, delta: "tracking", spark: [0, 1, 1, 1, 2, 2, Math.max(2, favs.length)] },
   ];
-  const tasks = [
-    { text: "Complete AWS Cloud Practitioner course", done: false, p: "high" },
-    { text: "Add portfolio project — Churn Predictor", done: true, p: "done" },
-    { text: "Follow up with Grab recruiter", done: false, p: "medium" },
-    { text: "Update LinkedIn profile headline", done: false, p: "low" },
-  ];
-  const pColor = { high: T.red, medium: T.amber, low: T.t3, done: T.green };
+  const readiness = [["Skills", 82], ["Experience", 60], ["Portfolio", 75], ["Certifications", 45]];
+  const certs = [["Google Data Analytics", 78], ["AWS Cloud Practitioner", 42], ["Databricks Associate", 15]];
+  const pColor = { High: T.accent, Med: T.amber, Low: T.t3 };
+  const maxTrend = TRENDING[0][1];
 
   return (
-    <div style={{ maxWidth: 1060 }}>
-      <PageHeader eyebrow="Overview" title="Good morning, Ahmad 👋" sub="You have 3 unread messages and 3 action items pending" />
+    <div>
+      <PageHead
+        kicker={date}
+        title={`${greet}, Ahmad.`}
+        sub={`${pending} open action item${pending === 1 ? "" : "s"} · 3 unread messages · 2 recruiters viewed your profile this week`}
+        right={<>
+          <Btn onClick={() => onNavigate("progression")}><MapIcon size={14} strokeWidth={SW} /> Career map</Btn>
+          <Btn variant="accent" onClick={onAskGumball}>Ask Gumball <ArrowRight size={14} className="arrow" /></Btn>
+        </>}
+      />
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
-        {stats.map(s => (
-          <Card key={s.label} style={{ padding: "20px", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: 0, right: 0, width: 50, height: 50, background: `${s.color}10`, borderRadius: "0 14px 0 50px" }} />
-            <div style={{ fontSize: 22, marginBottom: 10 }}>{s.e}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>{s.v}</div>
-            <div style={{ fontSize: 11, color: T.t3, marginBottom: 8 }}>{s.label}</div>
-            <Tag color={s.color}>{s.delta}</Tag>
-          </Card>
+      {/* Stats strip */}
+      <div className="card in" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginBottom: 20, ...d(140) }}>
+        {stats.map((s, i) => (
+          <div key={s.label} style={{ padding: "18px 20px", borderLeft: i ? `1px solid ${T.line}` : "none" }}>
+            <div className="label">{s.label}</div>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8, marginTop: 14 }}>
+              <div>
+                <div className="mono" style={{ fontSize: 30, fontWeight: 500, letterSpacing: -1.2, lineHeight: 1 }}><CountUp value={s.v} suffix={s.suffix} delay={200 + i * 90} /></div>
+                <div className="mono" style={{ fontSize: 11.5, color: s.delta.startsWith("+") ? T.green : T.t3, marginTop: 9 }}>{s.delta} <span style={{ color: T.t4 }}>· 30d</span></div>
+              </div>
+              <Sparkline data={s.spark} delay={350 + i * 120} />
+            </div>
+          </div>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}>
-        {/* Action Items */}
-        <Card style={{ padding: "20px" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>Action Items</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            {tasks.map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, padding: "10px 12px", background: T.bg, borderRadius: 9, alignItems: "flex-start", opacity: t.done ? 0.5 : 1 }}>
-                <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${t.done ? T.green : T.border}`, background: t.done ? T.greenDim : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, color: T.green }}>
-                  {t.done && <Ic n="check" />}
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.55fr) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Readiness */}
+          <div className="card in" style={d(220)}>
+            <CardHead title="Job readiness" meta="Data Analyst" action={<button className="link" style={{ fontSize: 12.5, display: "inline-flex", gap: 4, alignItems: "center" }} onClick={() => onNavigate("progression")}>Breakdown <ArrowUpRight size={13} /></button>} />
+            <div style={{ padding: "22px 18px", display: "grid", gridTemplateColumns: "170px 1fr", gap: 28, alignItems: "center" }}>
+              <div>
+                <div className="mono" style={{ fontSize: 56, fontWeight: 500, letterSpacing: -3, lineHeight: 1 }}>
+                  <CountUp value={76} delay={300} /><span style={{ fontSize: 18, letterSpacing: 0, color: T.t3 }}> /100</span>
                 </div>
-                <span style={{ fontSize: 12, color: t.done ? T.t3 : T.t2, flex: 1, textDecoration: t.done ? "line-through" : "none", lineHeight: 1.5 }}>{t.text}</span>
-                {!t.done && <span style={{ fontSize: 10, fontWeight: 700, color: pColor[t.p] }}>{t.p}</span>}
+                <div style={{ fontSize: 12.5, color: T.t2, marginTop: 12, lineHeight: 1.5 }}>Two gaps away from interview-ready.</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+                {readiness.map(([k, v], i) => (
+                  <div key={k} style={{ display: "grid", gridTemplateColumns: "104px 1fr 28px", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 13, color: T.t2 }}>{k}</span>
+                    <Bar value={v} color={v < 50 ? T.accent : T.t1} mounted={mounted} delay={300 + i * 90} />
+                    <span className="mono" style={{ fontSize: 12, color: v < 50 ? T.accent : T.t2, textAlign: "right" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ borderTop: `1px solid ${T.line}`, padding: "12px 18px", fontSize: 12.5, color: T.t2, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
+              Biggest gap is certifications. Finishing Google Data Analytics adds about 9 points.
+            </div>
+          </div>
+
+          {/* Action items */}
+          <div className="card in" style={d(300)}>
+            <CardHead title="Action items" meta={`${tasks.length - pending}/${tasks.length}`} />
+            {tasks.map((t, i) => (
+              <div key={i} onClick={() => toggleTask(i)} className="row" style={{ display: "flex", gap: 12, padding: "12px 18px", alignItems: "center", cursor: "pointer", borderTop: i ? `1px solid ${T.line}` : "none" }}>
+                <Checkbox on={t.done} />
+                <span style={{ fontSize: 13.5, color: t.done ? T.t3 : T.t1, flex: 1, textDecoration: t.done ? "line-through" : "none", textDecorationColor: T.t4, transition: "color .2s" }}>{t.text}</span>
+                {!t.done && <span className="mono" style={{ fontSize: 11, color: pColor[t.p] }}>{t.p}</span>}
+                <span className="mono" style={{ fontSize: 11, color: T.t3, width: 52, textAlign: "right" }}>{t.due}</span>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
-        {/* Career Progress */}
-        <Card style={{ padding: "20px" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>Certification Progress</div>
-          {[
-            { name: "Google Data Analytics", pct: 78, color: T.accent },
-            { name: "AWS Cloud Practitioner", pct: 42, color: T.amber },
-            { name: "Databricks Associate", pct: 15, color: T.purple },
-          ].map(c => (
-            <div key={c.name} style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: T.t2 }}>{c.name}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: c.color }}>{c.pct}%</span>
-              </div>
-              <div style={{ height: 4, background: T.border, borderRadius: 99 }}>
-                <div style={{ width: `${c.pct}%`, height: "100%", background: c.color, borderRadius: 99, transition: "width 0.8s ease" }} />
-              </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Certifications */}
+          <div className="card in" style={d(260)}>
+            <CardHead title="Certifications" meta="in progress" />
+            <div style={{ padding: "6px 18px 14px" }}>
+              {certs.map(([name, pct], i) => (
+                <div key={name} style={{ padding: "10px 0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}>
+                    <span>{name}</span>
+                    <span className="mono" style={{ color: T.t2, fontSize: 12 }}><CountUp value={pct} suffix="%" delay={400 + i * 120} /></span>
+                  </div>
+                  <Bar value={pct} mounted={mounted} delay={400 + i * 120} height={3} />
+                </div>
+              ))}
             </div>
-          ))}
-        </Card>
+          </div>
+
+          {/* Inbox preview */}
+          <div className="card in" style={d(320)}>
+            <CardHead title="Inbox" meta="3 unread" action={<button className="link" style={{ fontSize: 12.5 }} onClick={() => onNavigate("inbox")}>Open</button>} />
+            {MESSAGES_DATA.map((m, i) => (
+              <div key={m.id} onClick={() => onNavigate("inbox")} className="row" style={{ display: "flex", gap: 12, padding: "12px 18px", cursor: "pointer", borderTop: i ? `1px solid ${T.line}` : "none" }}>
+                <Avatar initials={m.avatar} size={30} color={m.color} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: m.unread ? 600 : 400 }}>{m.name}</span>
+                    <span className="mono" style={{ fontSize: 11, color: T.t3 }}>{m.time}</span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: T.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{m.history[m.history.length - 1].text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Trending */}
+          <div className="card in" style={d(380)}>
+            <CardHead title="Rising skills" meta="MY · job posts, QoQ" />
+            <div style={{ padding: "6px 0" }}>
+              {TRENDING.map(([name, g], i) => (
+                <div key={name} style={{ display: "grid", gridTemplateColumns: "24px 1fr 70px 46px", alignItems: "center", gap: 10, padding: "8px 18px", fontSize: 13 }}>
+                  <span className="mono" style={{ color: T.t4, fontSize: 11.5 }}>{String(i + 1).padStart(2, "0")}</span>
+                  <span>{name}</span>
+                  <Bar value={(g / maxTrend) * 100} color={T.t3} height={3} mounted={mounted} delay={500 + i * 70} />
+                  <span className="mono" style={{ color: T.green, fontSize: 12, textAlign: "right" }}>+{g}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 // ─── DISCOVER ─────────────────────────────────────────────────────────────────
+const DISCOVER_COLS = "minmax(0, 1fr) 110px 120px 150px 64px";
+
 function DiscoverPage({ favs, setFavs }) {
   const [expanded, setExpanded] = useState(null);
   const [q, setQ] = useState("");
-  const filtered = CAREERS.filter(c => c.title.toLowerCase().includes(q.toLowerCase()) || c.skills.some(s => s.toLowerCase().includes(q.toLowerCase())));
+  const [field, setField] = useState("All");
+  const filters = ["All", ...CAREERS.map(c => c.field).filter((f, i, a) => a.indexOf(f) === i)];
+  const ql = q.toLowerCase();
+  const list = CAREERS
+    .filter(c => field === "All" || c.field === field)
+    .filter(c => c.title.toLowerCase().includes(ql) || c.skills.some(s => s.toLowerCase().includes(ql)))
+    .sort((a, b) => b.match - a.match);
 
   return (
-    <div style={{ maxWidth: 900 }}>
-      <PageHeader eyebrow="Career Discovery" title="Find Your Path" sub="AI-matched careers based on your skills and interests" />
+    <div>
+      <PageHead kicker="Discover" title="Careers that fit you" sub="Sorted by how well your current skills match, with demand and salary for Malaysia." />
 
-      <div style={{ position: "relative", maxWidth: 440, marginBottom: 24 }}>
-        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: T.t3, pointerEvents: "none" }}><Ic n="search" /></span>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search careers or skills…" style={{ width: "100%", padding: "10px 12px 10px 36px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: 9, color: T.t1, fontSize: 13, outline: "none", boxSizing: "border-box" }} onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border} />
+      <div className="in" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 14, flexWrap: "wrap", ...d(140) }}>
+        <div className="seg">
+          {filters.map(f => <button key={f} className={field === f ? "on" : ""} onClick={() => setField(f)}>{f === "All" ? "All" : FIELD_SHORT[f] || f}</button>)}
+        </div>
+        <div style={{ position: "relative", width: 260 }}>
+          <Search size={14} strokeWidth={SW} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: T.t3 }} />
+          <input className="field" value={q} onChange={e => setQ(e.target.value)} placeholder="Filter by role or skill" style={{ padding: "8px 12px 8px 32px" }} />
+        </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {filtered.map(c => {
+      <div className="card in" style={{ overflow: "hidden", ...d(200) }}>
+        <div style={{ display: "grid", gridTemplateColumns: DISCOVER_COLS, gap: 16, padding: "10px 18px", borderBottom: `1px solid ${T.line}` }}>
+          {["Role", "Your match", "Demand", "Salary / month", ""].map(h => <span key={h} className="label">{h}</span>)}
+        </div>
+
+        {list.length === 0 && (
+          <div className="in-fade" style={{ padding: "48px 18px", textAlign: "center", color: T.t3, fontSize: 13.5 }}>
+            Nothing matches “{q}”. Try a skill like Python or Figma.
+          </div>
+        )}
+
+        {list.map((c, idx) => {
           const isFav = favs.includes(c.id);
           const isExp = expanded === c.id;
+          const I = FIELD_ICONS[c.field];
           return (
-            <div key={c.id} style={{ background: T.surface, border: `1.5px solid ${isExp ? T.accent : T.border}`, borderRadius: 13, overflow: "hidden", transition: "border-color 0.2s" }}>
-              <div onClick={() => setExpanded(isExp ? null : c.id)} style={{ padding: "16px 18px", display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}>
-                <div style={{ width: 42, height: 42, borderRadius: 11, background: T.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{c.icon}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{c.title}</span>
-                    <Tag color={T.accent}>{c.level}</Tag>
-                  </div>
-                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                    {c.skills.slice(0, 4).map(s => <span key={s} style={{ fontSize: 11, color: T.t3, background: T.bg, padding: "2px 7px", borderRadius: 4 }}>{s}</span>)}
+            <div key={c.id} className="in" style={{ borderTop: idx ? `1px solid ${T.line}` : "none", ...d(240 + idx * 50) }}>
+              <div onClick={() => setExpanded(isExp ? null : c.id)} className={`row ${isExp ? "active" : ""}`} style={{ display: "grid", gridTemplateColumns: DISCOVER_COLS, gap: 16, alignItems: "center", padding: "14px 18px", cursor: "pointer" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.line2}`, background: T.bg, display: "grid", placeItems: "center", color: T.t2, flexShrink: 0 }}><I size={17} strokeWidth={SW} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{c.title}</div>
+                    <div style={{ fontSize: 12.5, color: T.t3, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.level} · {c.skills.slice(0, 3).join(", ")}</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10, color: T.t3, marginBottom: 3 }}>Market Demand</div>
-                    <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                      <div style={{ width: 52, height: 3, background: T.border, borderRadius: 99 }}><div style={{ width: `${c.demand}%`, height: "100%", background: T.accent, borderRadius: 99 }} /></div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: T.accent }}>{c.demand}%</span>
-                    </div>
-                  </div>
-                  <button onClick={e => { e.stopPropagation(); setFavs(f => f.includes(c.id) ? f.filter(x => x !== c.id) : [...f, c.id]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-                    <Ic n={isFav ? "starFill" : "star"} />
+                <div className="mono" style={{ fontSize: 13, color: c.match >= 60 ? T.green : c.match >= 30 ? T.t1 : T.t3 }}><CountUp value={c.match} suffix="%" delay={300 + idx * 60} /></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 56, height: 3, background: T.line, borderRadius: 2, overflow: "hidden" }}><div className="grow-x" style={{ width: `${c.demand}%`, height: "100%", background: T.t2, ...d(380 + idx * 60) }} /></div>
+                  <span className="mono" style={{ fontSize: 12, color: T.t2 }}>{c.demand}</span>
+                </div>
+                <div className="mono" style={{ fontSize: 12.5 }}><span style={{ color: T.t3 }}>RM </span>{c.salary}</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2 }}>
+                  <button onClick={e => { e.stopPropagation(); setFavs(f => f.includes(c.id) ? f.filter(x => x !== c.id) : [...f, c.id]); }} title={isFav ? "Remove from saved" : "Save"} aria-label={isFav ? "Remove from saved" : "Save"} className="btn btn-ghost" style={{ padding: 6 }}>
+                    <Bookmark key={String(isFav)} size={15} strokeWidth={SW} className={isFav ? "check-pop" : ""} fill={isFav ? T.accent : "none"} color={isFav ? T.accent : T.t3} />
                   </button>
-                  <div style={{ color: T.t3 }}>{isExp ? <Ic n="chevUp" /> : <Ic n="chevDown" />}</div>
+                  <ChevronDown size={15} strokeWidth={SW} color={T.t3} style={{ transition: "transform .3s var(--ease)", transform: isExp ? "rotate(180deg)" : "none" }} />
                 </div>
               </div>
 
-              {isExp && (
-                <div style={{ borderTop: `1px solid ${T.border}`, padding: "20px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
-                  <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.7, margin: 0 }}>{c.description}</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+              <div className={`collapse ${isExp ? "open" : ""}`}>
+                <div>
+                  <div style={{ padding: "6px 18px 22px 68px", display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: 32 }}>
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: T.t3, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Salary Range</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: T.green }}>{c.salary}</div>
+                      <p style={{ fontSize: 13.5, color: T.t2, lineHeight: 1.65, margin: "0 0 14px" }}>{c.description}</p>
+                      {c.responsibilities.map(r => <div key={r} style={{ fontSize: 13, color: T.t2, padding: "3px 0", display: "flex", gap: 8 }}><span style={{ color: T.t4 }}>—</span>{r}</div>)}
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: T.t3, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Hiring Companies</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                        {c.companies.slice(0, 4).map(co => <Tag key={co} color={T.purple}>{co}</Tag>)}
+                      <div className="label" style={{ marginBottom: 10 }}>Skills · you have {c.skills.filter(s => USER_SKILLS.has(s)).length} of {c.skills.length}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{c.skills.map(s => <Skill key={s} have={USER_SKILLS.has(s)}>{s}</Skill>)}</div>
+                      <div className="label" style={{ margin: "18px 0 10px" }}>Certifications</div>
+                      {c.certs.map(cert => <div key={cert} style={{ fontSize: 13, color: T.t2, padding: "3px 0", display: "flex", gap: 8, alignItems: "center" }}><Award size={13} strokeWidth={SW} color={T.t3} />{cert}</div>)}
+                    </div>
+                    <div>
+                      <div className="label" style={{ marginBottom: 10 }}>Hiring now</div>
+                      {c.companies.slice(0, 5).map(co => <div key={co} style={{ fontSize: 13, color: T.t2, padding: "3px 0", display: "flex", gap: 8, alignItems: "center" }}><Building2 size={13} strokeWidth={SW} color={T.t3} />{co}</div>)}
+                      <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                        <Btn variant="primary" size="sm">Tailor resume</Btn>
+                        <Btn size="sm">See skill gaps</Btn>
                       </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: T.t3, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Certifications</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        {c.certs.map(cert => <div key={cert} style={{ fontSize: 11, color: T.amber }}>🏅 {cert}</div>)}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Btn size="sm" variant="primary">Generate Resume for Role</Btn>
-                    <Btn size="sm" variant="ghost">View Skill Gaps</Btn>
-                    <Btn size="sm" variant="secondary">Save Career Path</Btn>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
@@ -689,62 +1046,102 @@ function DiscoverPage({ favs, setFavs }) {
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
 function ProfilePage() {
+  const mounted = useMounted(200);
   const skills = ["Python", "SQL", "Tableau", "Pandas", "NumPy", "Machine Learning", "Data Visualization", "Git", "Statistics", "Excel"];
+  const experience = [
+    { r: "Data Analyst Intern", c: "TechCorp Sdn Bhd", p: "Jun – Aug 2024", d: "Built ETL pipelines processing 500K+ daily records using Python and SQL. Created Tableau dashboards that cut reporting time by 40%." },
+    { r: "Teaching Assistant", c: "UPM Computer Science", p: "Jan – May 2024", d: "Ran weekly labs for Introduction to Databases, 60+ students." },
+  ];
+  const checklist = [["Resume uploaded", true], ["3+ portfolio items", true], ["Headline written", true], ["Add a certification", false], ["Link GitHub", false]];
+
   return (
-    <div style={{ maxWidth: 840 }}>
-      {/* Cover */}
-      <div style={{ height: 130, background: `linear-gradient(135deg, #1a1b3a, #2D1B69, #4C1D95)`, borderRadius: 14, marginBottom: 0, overflow: "hidden", position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, opacity: 0.3, backgroundImage: "radial-gradient(circle at 20% 50%, rgba(91,110,245,0.4) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(155,110,245,0.3) 0%, transparent 50%)" }} />
-      </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ width: 72, height: 72, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, #EC4899)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 800, color: "#fff", border: `3px solid ${T.bg}`, marginTop: -36, marginBottom: 12 }}>A</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.4, margin: "0 0 4px" }}>Ahmad Razif bin Abdullah</h1>
-            <div style={{ fontSize: 13, color: T.t3, marginBottom: 6 }}>@ahmad.razif · Aspiring Data Analyst</div>
-            <div style={{ display: "flex", gap: 14 }}>
-              {["📍 Cyberjaya, MY", "🎓 UPM Computer Science", "💼 Open to Work"].map(t => <span key={t} style={{ fontSize: 12, color: T.t3 }}>{t}</span>)}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Btn size="sm" variant="ghost"><Ic n="upload" /> Upload Resume</Btn>
-            <Btn size="sm" variant="secondary">Edit Profile</Btn>
+    <div>
+      <div className="in" style={{ display: "flex", alignItems: "center", gap: 20, paddingBottom: 28, marginBottom: 28, borderBottom: `1px solid ${T.line}`, flexWrap: "wrap" }}>
+        <Avatar initials="AR" size={76} color={T.accent} square />
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <h1 className="serif" style={{ fontSize: 40, lineHeight: 1.05, margin: 0 }}>Ahmad Razif bin Abdullah</h1>
+          <div style={{ display: "flex", gap: 18, marginTop: 10, fontSize: 13, color: T.t2, flexWrap: "wrap", alignItems: "center" }}>
+            <span>Aspiring Data Analyst</span>
+            <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><MapPin size={13} strokeWidth={SW} color={T.t3} />Cyberjaya</span>
+            <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><GraduationCap size={13} strokeWidth={SW} color={T.t3} />UPM, Computer Science</span>
+            <span style={{ display: "inline-flex", gap: 8, alignItems: "center", color: T.green }}><span className="live" />Open to work</span>
           </div>
         </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn><FileUp size={14} strokeWidth={SW} /> Update resume</Btn>
+          <Btn variant="primary">Edit profile</Btn>
+        </div>
+      </div>
 
-        {[
-          { title: "About", content: <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.8, margin: 0 }}>Final-year Computer Science student passionate about data analytics and visualization. I transform complex datasets into actionable insights. Seeking data analyst roles in the Klang Valley area.</p> },
-          { title: "Education", content: (
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🎓</div>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)", gap: 40 }}>
+        <div>
+          <section className="in" style={{ marginBottom: 36, ...d(80) }}>
+            <div className="label" style={{ marginBottom: 12 }}>About</div>
+            <p style={{ fontSize: 15, color: T.t1, lineHeight: 1.7, margin: 0 }}>Final-year Computer Science student who likes turning messy datasets into decisions people can act on. Looking for data analyst roles in the Klang Valley.</p>
+          </section>
+
+          <section className="in" style={{ marginBottom: 36, ...d(140) }}>
+            <div className="label" style={{ marginBottom: 16 }}>Experience</div>
+            {experience.map((e, i) => (
+              <div key={e.r} style={{ display: "grid", gridTemplateColumns: "120px 18px 1fr", gap: 12, paddingBottom: i < experience.length - 1 ? 24 : 0 }}>
+                <span className="mono" style={{ fontSize: 12, color: T.t3, paddingTop: 2 }}>{e.p}</span>
+                <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", border: `1.5px solid ${i === 0 ? T.accent : T.t3}`, background: T.bg, marginTop: 5, zIndex: 1 }} />
+                  {i < experience.length - 1 && <span style={{ position: "absolute", top: 16, bottom: -26, width: 1, background: T.line2 }} />}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 500 }}>{e.r}</div>
+                  <div style={{ fontSize: 13, color: T.t2, margin: "2px 0 8px" }}>{e.c}</div>
+                  <div style={{ fontSize: 13.5, color: T.t2, lineHeight: 1.6 }}>{e.d}</div>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section className="in" style={d(200)}>
+            <div className="label" style={{ marginBottom: 16 }}>Education</div>
+            <div style={{ display: "grid", gridTemplateColumns: "120px 18px 1fr", gap: 12 }}>
+              <span className="mono" style={{ fontSize: 12, color: T.t3, paddingTop: 2 }}>2021 – 2025</span>
+              <div style={{ display: "flex", justifyContent: "center" }}><span style={{ width: 9, height: 9, borderRadius: "50%", border: `1.5px solid ${T.t3}`, marginTop: 5 }} /></div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>B.Sc. Computer Science</div>
-                <div style={{ fontSize: 12, color: T.accent, marginBottom: 2 }}>Universiti Putra Malaysia · 2021–2025</div>
-                <div style={{ fontSize: 12, color: T.t3 }}>CGPA 3.72 · Dean's List 2022, 2023</div>
+                <div style={{ fontSize: 14.5, fontWeight: 500 }}>B.Sc. Computer Science</div>
+                <div style={{ fontSize: 13, color: T.t2, marginTop: 2 }}>Universiti Putra Malaysia · CGPA 3.72 · Dean's List 2022, 2023</div>
               </div>
             </div>
-          )},
-          { title: "Skills", content: <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{skills.map(s => <Tag key={s} color={T.accent}>{s}</Tag>)}</div> },
-          { title: "Experience", content: (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {[{ r: "Data Analyst Intern", c: "TechCorp Sdn Bhd", p: "Jun–Aug 2024", d: "Built ETL pipelines processing 500K+ daily records using Python and SQL. Created Tableau dashboards reducing reporting time by 40%." }, { r: "Teaching Assistant", c: "UPM CS Department", p: "Jan–May 2024", d: "Assisted in teaching Introduction to Databases for 60+ students." }].map((e, i) => (
-                <div key={i} style={{ display: "flex", gap: 12, paddingBottom: i === 0 ? 16 : 0, borderBottom: i === 0 ? `1px solid ${T.border}` : "none" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>🏢</div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{e.r}</div>
-                    <div style={{ fontSize: 12, color: T.accent, marginBottom: 4 }}>{e.c} · {e.p}</div>
-                    <div style={{ fontSize: 12, color: T.t3, lineHeight: 1.6 }}>{e.d}</div>
-                  </div>
+          </section>
+        </div>
+
+        <aside style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div className="card in" style={{ padding: 18, ...d(120) }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Profile strength</span>
+              <span className="mono" style={{ fontSize: 13 }}><CountUp value={76} suffix="%" delay={300} /></span>
+            </div>
+            <Bar value={76} mounted={mounted} delay={200} />
+            <div style={{ marginTop: 14 }}>
+              {checklist.map(([t, ok]) => (
+                <div key={t} style={{ display: "flex", gap: 10, alignItems: "center", padding: "5px 0", fontSize: 13, color: ok ? T.t3 : T.t1 }}>
+                  {ok ? <Check size={14} strokeWidth={2.5} color={T.green} /> : <Plus size={14} strokeWidth={SW} color={T.accent} />}
+                  <span style={{ textDecoration: ok ? "line-through" : "none", textDecorationColor: T.t4 }}>{t}</span>
                 </div>
               ))}
             </div>
-          )},
-        ].map(sec => (
-          <Card key={sec.title} style={{ padding: "18px 20px", marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14, color: T.t1 }}>{sec.title}</div>
-            {sec.content}
-          </Card>
-        ))}
+          </div>
+
+          <div className="in" style={d(180)}>
+            <div className="label" style={{ marginBottom: 12 }}>Skills</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{skills.map((s, i) => <span key={s} className="in-pop" style={d(260 + i * 30)}><Skill>{s}</Skill></span>)}</div>
+          </div>
+
+          <div className="in" style={d(240)}>
+            <div className="label" style={{ marginBottom: 8 }}>Links</div>
+            {[[GithubIcon, "github.com/ahmad-razif"], [LinkIcon, "linkedin.com/in/ahmad-razif"], [Mail, "ahmad.razif@email.com"]].map(([I, t]) => (
+              <a key={t} href="#" onClick={e => e.preventDefault()} className="link" style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", fontSize: 13 }}>
+                <span style={{ color: T.t3, display: "inline-flex" }}><I size={14} strokeWidth={SW} /></span><span style={{ flex: 1 }}>{t}</span><ArrowUpRight size={13} color={T.t4} />
+              </a>
+            ))}
+          </div>
+        </aside>
       </div>
     </div>
   );
@@ -753,141 +1150,174 @@ function ProfilePage() {
 // ─── PORTFOLIO ─────────────────────────────────────────────────────────────────
 function PortfolioPage() {
   const [filter, setFilter] = useState("All");
-  const filtered = filter === "All" ? PORTFOLIO_ITEMS : PORTFOLIO_ITEMS.filter(i => i.type === filter);
+  const list = filter === "All" ? PORTFOLIO_ITEMS : PORTFOLIO_ITEMS.filter(i => i.type === filter);
+  const count = (t) => t === "All" ? PORTFOLIO_ITEMS.length : PORTFOLIO_ITEMS.filter(i => i.type === t).length;
 
   return (
-    <div style={{ maxWidth: 1000 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28 }}>
-        <PageHeader eyebrow="Portfolio" title="Projects & Certificates" />
-        <div style={{ display: "flex", gap: 9 }}>
-          <Btn size="sm" variant="ghost"><Ic n="plus" /> Add New Item</Btn>
-          <Btn size="sm" variant="secondary"><Ic n="plus" /> Add Certificate</Btn>
-          <Btn size="sm" variant="primary"><Ic n="plus" /> Add Experience</Btn>
-        </div>
-      </div>
+    <div>
+      <PageHead kicker="Portfolio" title="Work you can show" sub="Projects, certificates and experience — the evidence behind your resume." right={<Btn variant="primary"><Plus size={14} strokeWidth={2} /> Add item</Btn>} />
 
-      <div style={{ display: "flex", gap: 7, marginBottom: 22 }}>
+      <div className="seg in" style={{ marginBottom: 20, ...d(140) }}>
         {["All", "Project", "Certificate", "Experience"].map(t => (
-          <button key={t} onClick={() => setFilter(t)} style={{ padding: "7px 15px", borderRadius: 7, border: `1.5px solid ${filter === t ? T.accent : T.border}`, background: filter === t ? T.accentGlow : "transparent", color: filter === t ? T.accentLight : T.t3, fontSize: 12, fontWeight: filter === t ? 600 : 400, cursor: "pointer" }}>{t}</button>
+          <button key={t} className={filter === t ? "on" : ""} onClick={() => setFilter(t)}>{t === "All" ? "All" : `${t}s`} <span className="mono" style={{ color: T.t4, marginLeft: 4 }}>{count(t)}</span></button>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16 }}>
-        {filtered.map(item => (
-          <Card key={item.id} style={{ padding: "20px", position: "relative", overflow: "hidden" }}>
-            {item.featured && <div style={{ position: "absolute", top: 14, right: 14 }}><Tag color={T.amber}>⭐ Featured</Tag></div>}
-            <div style={{ fontSize: 30, marginBottom: 12 }}>{item.emoji}</div>
-            <Tag color={item.type === "Certificate" ? T.amber : item.type === "Experience" ? T.green : T.accent}>{item.type}</Tag>
-            <h3 style={{ fontSize: 14, fontWeight: 700, margin: "10px 0 6px" }}>{item.title}</h3>
-            <p style={{ fontSize: 12, color: T.t3, lineHeight: 1.6, margin: "0 0 12px" }}>{item.desc}</p>
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 14 }}>
-              {item.tech.map(t => <span key={t} style={{ fontSize: 11, color: T.t3, background: T.bg, padding: "2px 7px", borderRadius: 4 }}>{t}</span>)}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: T.t3, display: "flex", alignItems: "center", gap: 4 }}><Ic n="eye" /> {item.views} views</span>
-              <div style={{ display: "flex", gap: 7 }}>
-                {item.github && <Btn size="sm" variant="secondary"><Ic n="github" /></Btn>}
-                <Btn size="sm" variant="ghost">View</Btn>
+      <div key={filter} style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
+        {list.map((item, i) => {
+          const I = item.icon;
+          return (
+            <div key={item.id} className="card card-hover in" style={{ overflow: "hidden", display: "flex", flexDirection: "column", ...d(180 + i * 60) }}>
+              <div className="dotgrid" style={{ height: 112, borderBottom: `1px solid ${T.line}`, position: "relative", display: "grid", placeItems: "center", background: T.bg }}>
+                <div className="cover-ic" style={{ width: 44, height: 44, borderRadius: 10, border: `1px solid ${T.line2}`, background: T.surface, display: "grid", placeItems: "center", color: T.t2 }}><I size={20} strokeWidth={1.5} /></div>
+                {item.featured && <span style={{ position: "absolute", top: 12, left: 12 }}><Pill color={T.accent} dot>Featured</Pill></span>}
+                <span className="label" style={{ position: "absolute", top: 14, right: 14 }}>{item.type}</span>
+              </div>
+              <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 500, marginBottom: 6 }}>{item.title}</div>
+                <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.55, margin: "0 0 14px", flex: 1 }}>{item.desc}</p>
+                <div className="mono" style={{ fontSize: 11.5, color: T.t3, marginBottom: 14 }}>{item.tech.join(" · ")}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${T.line}` }}>
+                  <span className="mono" style={{ fontSize: 11.5, color: T.t3, display: "flex", alignItems: "center", gap: 6 }}><Eye size={13} strokeWidth={SW} /><CountUp value={item.views} delay={300 + i * 60} /></span>
+                  <div style={{ display: "flex", gap: 2 }}>
+                    {item.github && <IconBtn icon={GithubIcon} title="Source on GitHub" size={14} />}
+                    <IconBtn icon={ArrowUpRight} title="Open" size={15} />
+                  </div>
+                </div>
               </div>
             </div>
-          </Card>
-        ))}
+          );
+        })}
 
-        {/* Add placeholder */}
-        <div style={{ background: T.bg, border: `2px dashed ${T.border}`, borderRadius: 13, padding: "32px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", minHeight: 180 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 11, background: T.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", color: T.accent }}><Ic n="plus" /></div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.t3 }}>Add New Item</div>
-          <div style={{ fontSize: 11, color: T.t4, textAlign: "center" }}>Project, certificate, or experience</div>
-        </div>
+        <button className="add-tile in" style={{ ...d(180 + list.length * 60), border: `1px dashed ${T.line2}`, borderRadius: 10, background: "transparent", color: T.t3, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, minHeight: 280, fontSize: 13 }}>
+          <span className="plus" style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.line2}`, display: "grid", placeItems: "center" }}><Plus size={16} strokeWidth={SW} /></span>
+          Add a project, certificate or role
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── RESUME ────────────────────────────────────────────────────────────────────
+// ─── RESUME BUILDER ───────────────────────────────────────────────────────────
+const RESUME_STEPS = ["Pulling profile data", "Matching keywords to Data Analyst", "Laying out sections", "Tightening bullet points"];
+const TEMPLATES = [["Modern", "Accent rule, compact"], ["ATS-safe", "Plain text, max parse rate"], ["Classic", "Serif, centred header"]];
+
 function ResumePage() {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [template, setTemplate] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [sections, setSections] = useState({ Experience: true, Education: true, Skills: true, Certifications: true });
+  const timers = useRef([]);
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const generate = () => {
-    setLoading(true); setReady(false);
-    setTimeout(() => { setLoading(false); setReady(true); }, 2000);
+    timers.current.forEach(clearTimeout);
+    setLoading(true); setReady(false); setStepIdx(0);
+    timers.current = [
+      ...RESUME_STEPS.slice(1).map((_, i) => setTimeout(() => setStepIdx(i + 1), (i + 1) * 500)),
+      setTimeout(() => { setLoading(false); setReady(true); }, 2100),
+    ];
+  };
+
+  const ink = "#16161A";
+  const accent = template === 0 ? "#4F5FD8" : ink;
+  const classic = template === 2;
+  const body = {
+    Experience: <div><div style={{ display: "flex", justifyContent: "space-between" }}><strong>Data Analyst Intern — TechCorp Sdn Bhd</strong><span style={{ color: "#777", fontSize: 11 }}>Jun–Aug 2024</span></div><ul style={{ margin: "6px 0 0 16px", padding: 0, fontSize: 12, color: "#3a3a40", lineHeight: 1.75 }}><li>Built ETL pipelines processing 500K+ daily records using Python and SQL</li><li>Created Tableau dashboards that cut reporting time by 40%</li></ul></div>,
+    Education: <div><div style={{ display: "flex", justifyContent: "space-between" }}><strong>B.Sc. Computer Science</strong><span style={{ color: "#777", fontSize: 11 }}>2021–2025</span></div><div style={{ fontSize: 12, color: "#555" }}>Universiti Putra Malaysia · CGPA 3.72 · Dean's List 2022, 2023</div></div>,
+    Skills: <div style={{ fontSize: 12, color: "#3a3a40" }}>Python · SQL · Tableau · Pandas · Machine Learning · Git · Excel · Power BI</div>,
+    Certifications: <div style={{ fontSize: 12, color: "#3a3a40" }}>Google Data Analytics Professional Certificate (2024) · AWS Cloud Practitioner (in progress)</div>,
   };
 
   return (
-    <div style={{ maxWidth: 1060, display: "flex", gap: 28 }}>
-      {/* Controls panel */}
-      <div style={{ width: 260, flexShrink: 0 }}>
-        <PageHeader eyebrow="Resume Builder" title="Generate" />
+    <div>
+      <PageHead kicker="Resume builder" title="Generate a tailored resume" sub="Built from your profile and portfolio, tuned for the role you pick." />
 
-        <Card style={{ padding: "16px", marginBottom: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12 }}>Data Sources</div>
-          {["Profile & Experience", "Skills", "Portfolio Projects", "Certifications"].map(s => (
-            <div key={s} style={{ display: "flex", gap: 8, alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${T.border}` }}>
-              <div style={{ width: 14, height: 14, borderRadius: 3, background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><Ic n="check" /></div>
-              <span style={{ fontSize: 12, color: T.t2 }}>{s}</span>
-            </div>
-          ))}
-        </Card>
-
-        <Card style={{ padding: "16px", marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12 }}>Template</div>
-          {["Modern Clean", "ATS Optimized", "Creative"].map((t, i) => (
-            <div key={t} onClick={() => setTemplate(i)} style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 10px", borderRadius: 7, background: template === i ? T.accentGlow : "transparent", cursor: "pointer", marginBottom: 4 }}>
-              <div style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${template === i ? T.accent : T.border}`, background: template === i ? T.accent : "transparent" }} />
-              <span style={{ fontSize: 12, color: template === i ? T.accentLight : T.t3 }}>{t}</span>
-            </div>
-          ))}
-        </Card>
-
-        <Btn onClick={generate} disabled={loading} size="lg" style={{ width: "100%", justifyContent: "center", marginBottom: 9 }}>
-          {loading ? "⚙️ Generating…" : "✨ Generate Resume"}
-        </Btn>
-        {ready && <Btn variant="success" size="md" style={{ width: "100%", justifyContent: "center" }}><Ic n="download" /> Download PDF</Btn>}
-      </div>
-
-      {/* Preview */}
-      <div style={{ flex: 1 }}>
-        {!ready && !loading && (
-          <div style={{ height: 580, border: `2px dashed ${T.border}`, borderRadius: 14, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-            <div style={{ fontSize: 40 }}>📄</div>
-            <div style={{ fontSize: 14, color: T.t3 }}>Click "Generate Resume" to build your resume</div>
+      <div style={{ display: "grid", gridTemplateColumns: "280px minmax(0, 1fr)", gap: 28, alignItems: "start" }}>
+        <div className="in" style={{ display: "flex", flexDirection: "column", gap: 22, ...d(140) }}>
+          <div>
+            <div className="label" style={{ marginBottom: 8 }}>Target role</div>
+            <button className="field" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer", textAlign: "left" }}>
+              <BarChart3 size={15} strokeWidth={SW} color={T.t3} /><span style={{ flex: 1 }}>Data Analyst</span><ChevronDown size={15} color={T.t3} />
+            </button>
           </div>
-        )}
-        {loading && (
-          <div style={{ height: 580, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ width: 40, height: 40, border: `3px solid ${T.border}`, borderTop: `3px solid ${T.accent}`, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
-              <div style={{ fontSize: 13, color: T.t3 }}>Compiling profile data…</div>
-              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-            </div>
-          </div>
-        )}
-        {ready && (
-          <div style={{ background: "#fff", borderRadius: 14, padding: "40px 48px", color: "#1a1a1a", fontFamily: "Georgia, serif", boxShadow: "0 24px 80px rgba(0,0,0,0.5)", minHeight: 580 }}>
-            <div style={{ borderBottom: `3px solid ${T.accent}`, paddingBottom: 18, marginBottom: 18 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px", color: "#111", letterSpacing: -0.5 }}>Ahmad Razif bin Abdullah</h1>
-              <div style={{ fontSize: 12, color: T.accent, fontWeight: 600, marginBottom: 6 }}>Data Analyst · Python · SQL · Tableau</div>
-              <div style={{ fontSize: 11, color: "#666", display: "flex", gap: 18 }}>
-                <span>📧 ahmad.razif@email.com</span>
-                <span>📍 Cyberjaya, Malaysia</span>
-                <span>🔗 linkedin.com/in/ahmad-razif</span>
-              </div>
-            </div>
-            {[
-              { h: "Experience", body: <div><div style={{ display: "flex", justifyContent: "space-between" }}><strong>Data Analyst Intern — TechCorp Sdn Bhd</strong><span style={{ color: "#888", fontSize: 11 }}>Jun–Aug 2024</span></div><ul style={{ margin: "6px 0 0 16px", fontSize: 12, color: "#444", lineHeight: 1.8 }}><li>Built ETL pipelines processing 500K+ daily records using Python and SQL</li><li>Created Tableau dashboards reducing reporting time by 40%</li></ul></div> },
-              { h: "Education", body: <div><div style={{ display: "flex", justifyContent: "space-between" }}><strong>B.Sc. Computer Science</strong><span style={{ color: "#888", fontSize: 11 }}>2021–2025</span></div><div style={{ fontSize: 12, color: "#666" }}>Universiti Putra Malaysia · CGPA 3.72 · Dean's List 2022, 2023</div></div> },
-              { h: "Skills", body: <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>{["Python", "SQL", "Tableau", "Pandas", "Machine Learning", "Git", "Excel", "Power BI"].map(s => <span key={s} style={{ fontSize: 11, background: "#EEF2FF", color: T.accent, padding: "3px 9px", borderRadius: 4 }}>{s}</span>)}</div> },
-              { h: "Certifications", body: <div style={{ fontSize: 12, color: "#444" }}>🏅 Google Data Analytics Professional Certificate (2024) &nbsp;|&nbsp; 🏅 AWS Cloud Practitioner (In Progress)</div> },
-            ].map(sec => (
-              <div key={sec.h} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>{sec.h}</div>
-                {sec.body}
-              </div>
+
+          <div>
+            <div className="label" style={{ marginBottom: 4 }}>Sections</div>
+            {Object.keys(sections).map(s => (
+              <button key={s} onClick={() => setSections(x => ({ ...x, [s]: !x[s] }))} style={{ display: "flex", gap: 10, alignItems: "center", padding: "7px 0", cursor: "pointer", fontSize: 13.5, color: sections[s] ? T.t1 : T.t3, background: "none", border: "none", width: "100%", textAlign: "left" }}>
+                <Checkbox on={sections[s]} />{s}
+              </button>
             ))}
           </div>
-        )}
+
+          <div>
+            <div className="label" style={{ marginBottom: 8 }}>Template</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {TEMPLATES.map(([t, sub], i) => (
+                <button key={t} onClick={() => setTemplate(i)} className={`option ${template === i ? "on" : ""}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 8, border: `1px solid ${template === i ? T.accent : T.line2}`, background: template === i ? T.surface2 : "transparent", color: T.t1, cursor: "pointer", textAlign: "left" }}>
+                  <Radio on={template === i} />
+                  <div style={{ flex: 1 }}><div style={{ fontSize: 13.5 }}>{t}</div><div style={{ fontSize: 12, color: T.t3, marginTop: 1 }}>{sub}</div></div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Btn variant="primary" size="lg" onClick={generate} disabled={loading}>
+              {loading ? <><Loader2 size={15} className="spin" /> Generating</> : ready ? <><RotateCw size={14} strokeWidth={SW} /> Regenerate</> : <>Generate resume <ArrowRight size={15} className="arrow" /></>}
+            </Btn>
+            {ready && <Btn className="in-pop" size="lg"><Download size={14} strokeWidth={SW} /> Download PDF</Btn>}
+          </div>
+        </div>
+
+        <div className="in" style={d(200)}>
+          {!ready && !loading && (
+            <div className="dotgrid" style={{ height: 600, border: `1px dashed ${T.line2}`, borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: T.t3 }}>
+              <FileText size={28} strokeWidth={1.25} />
+              <div style={{ fontSize: 13.5 }}>Your preview will appear here</div>
+            </div>
+          )}
+          {loading && (
+            <div className="card" style={{ height: 600, padding: "44px 52px", display: "flex", flexDirection: "column", gap: 12, position: "relative" }}>
+              <div className="skel" style={{ height: 20, width: "52%" }} />
+              <div className="skel" style={{ height: 9, width: "34%" }} />
+              <div className="skel" style={{ height: 1, width: "100%", margin: "12px 0" }} />
+              {[0, 1, 2].map(b => (
+                <div key={b} style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 14 }}>
+                  <div className="skel" style={{ height: 9, width: "20%" }} />
+                  <div className="skel" style={{ height: 7, width: "92%" }} />
+                  <div className="skel" style={{ height: 7, width: "78%" }} />
+                  <div className="skel" style={{ height: 7, width: "84%" }} />
+                </div>
+              ))}
+              <div style={{ position: "absolute", left: 0, right: 0, bottom: 26, display: "flex", justifyContent: "center" }}>
+                <div key={stepIdx} className="in mono" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 6, background: T.bg, border: `1px solid ${T.line2}`, fontSize: 12, color: T.t2 }}>
+                  <Loader2 size={12} className="spin" /> {RESUME_STEPS[stepIdx]} <span style={{ color: T.t4 }}>{stepIdx + 1}/{RESUME_STEPS.length}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          {ready && (
+            <div className="paper-in" style={{ background: "#FBFAF7", borderRadius: 6, padding: "44px 52px", color: ink, fontFamily: classic ? "Georgia, serif" : "var(--sans)", boxShadow: "0 20px 60px rgba(0,0,0,0.45)", minHeight: 600 }}>
+              <div className="in" style={{ borderBottom: `${template === 1 ? 1 : 2}px solid ${accent}`, paddingBottom: 16, marginBottom: 18, textAlign: classic ? "center" : "left", ...d(250) }}>
+                <div style={{ fontSize: classic ? 28 : 24, fontWeight: classic ? 400 : 600, letterSpacing: -0.4 }}>Ahmad Razif bin Abdullah</div>
+                <div style={{ fontSize: 12, color: accent, fontWeight: 500, margin: "4px 0 6px" }}>Data Analyst · Python · SQL · Tableau</div>
+                <div style={{ fontSize: 11, color: "#666", display: "flex", gap: 16, justifyContent: classic ? "center" : "flex-start" }}>
+                  <span>ahmad.razif@email.com</span><span>Cyberjaya, Malaysia</span><span>linkedin.com/in/ahmad-razif</span>
+                </div>
+              </div>
+              {Object.keys(body).filter(k => sections[k]).map((k, i) => (
+                <div key={k} className="in" style={{ marginBottom: 18, ...d(350 + i * 110) }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, color: accent, letterSpacing: 1.4, textTransform: "uppercase", marginBottom: 7, textAlign: classic ? "center" : "left" }}>{k}</div>
+                  {body[k]}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -898,83 +1328,109 @@ function InboxPage() {
   const [activeId, setActiveId] = useState(1);
   const [input, setInput] = useState("");
   const [chats, setChats] = useState(MESSAGES_DATA.reduce((a, m) => ({ ...a, [m.id]: m.history }), {}));
+  const [typing, setTyping] = useState({});
+  const [read, setRead] = useState([1]);
   const active = MESSAGES_DATA.find(m => m.id === activeId);
   const msgs = chats[activeId] || [];
   const bottomRef = useRef(null);
+  const timers = useRef([]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chats, activeId, typing]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  const open = (id) => { setActiveId(id); setRead(r => r.includes(id) ? r : [...r, id]); };
 
   const send = () => {
     if (!input.trim()) return;
-    setChats(c => ({ ...c, [activeId]: [...(c[activeId] || []), { from: "me", text: input.trim(), time: "Just now" }] }));
+    const id = activeId;
+    setChats(c => ({ ...c, [id]: [...(c[id] || []), { from: "me", text: input.trim(), time: "Just now" }] }));
     setInput("");
+    timers.current.push(
+      setTimeout(() => setTyping(t => ({ ...t, [id]: true })), 700),
+      setTimeout(() => {
+        setTyping(t => ({ ...t, [id]: false }));
+        setChats(c => ({ ...c, [id]: [...(c[id] || []), { from: "them", text: AUTO_REPLIES[id], time: "Just now" }] }));
+      }, 2300),
+    );
   };
 
   return (
-    <div style={{ display: "flex", height: "calc(100vh - 82px)", margin: "-28px -32px", overflow: "hidden" }}>
-      {/* Sidebar */}
-      <div style={{ width: 300, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "20px 18px 14px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Inbox</div>
+    <div style={{ display: "flex", height: "100%" }}>
+      <div style={{ width: 320, borderRight: `1px solid ${T.line}`, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "22px 18px 14px" }}>
+          <h1 className="serif" style={{ fontSize: 30, margin: "0 0 14px" }}>Inbox</h1>
           <div style={{ position: "relative" }}>
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.t3 }}><Ic n="search" /></span>
-            <input placeholder="Search messages…" style={{ width: "100%", padding: "8px 10px 8px 30px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 7, color: T.t1, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+            <Search size={14} strokeWidth={SW} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.t3 }} />
+            <input className="field" placeholder="Search messages" style={{ padding: "7px 10px 7px 30px", fontSize: 13 }} />
           </div>
         </div>
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          {MESSAGES_DATA.map(m => (
-            <div key={m.id} onClick={() => setActiveId(m.id)} style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}00`, cursor: "pointer", background: activeId === m.id ? T.accentGlow2 : "transparent", borderLeft: `2px solid ${activeId === m.id ? T.accent : "transparent"}` }}>
-              <div style={{ display: "flex", gap: 10 }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{m.avatar}</div>
-                  {m.online && <div style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: T.green, border: `2px solid ${T.surface}` }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: m.unread > 0 ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
-                    <span style={{ fontSize: 10, color: T.t3, flexShrink: 0, marginLeft: 6 }}>{m.time}</span>
+        <div style={{ flex: 1, overflowY: "auto", borderTop: `1px solid ${T.line}` }}>
+          {MESSAGES_DATA.map((m, i) => {
+            const isActive = activeId === m.id;
+            const unread = read.includes(m.id) ? 0 : m.unread;
+            const last = (chats[m.id] || []).slice(-1)[0];
+            return (
+              <div key={m.id} onClick={() => open(m.id)} className={`row in ${isActive ? "active" : ""}`} style={{ padding: "14px 18px", cursor: "pointer", borderBottom: `1px solid ${T.line}`, position: "relative", ...d(80 + i * 60) }}>
+                {isActive && <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 2, background: T.accent }} />}
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div style={{ position: "relative" }}>
+                    <Avatar initials={m.avatar} size={36} color={m.color} />
+                    {m.online && <span style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: T.green, border: `2px solid ${isActive ? T.surface2 : T.bg}` }} />}
                   </div>
-                  <div style={{ fontSize: 11, color: T.t3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.lastMsg}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: unread ? 600 : 500 }}>{m.name}</span>
+                      <span className="mono" style={{ fontSize: 11, color: T.t3 }}>{last?.time === "Just now" ? "now" : m.time}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: T.t3, marginTop: 1 }}>{m.role}</div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+                      <div style={{ flex: 1, fontSize: 12.5, color: typing[m.id] ? T.t1 : T.t2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: typing[m.id] ? "italic" : "normal" }}>{typing[m.id] ? "typing…" : last?.text}</div>
+                      {unread > 0 && <span className="mono in-pop" style={{ fontSize: 11, color: "#fff", background: T.accent, borderRadius: 4, padding: "0 5px", lineHeight: "16px" }}>{unread}</span>}
+                    </div>
+                  </div>
                 </div>
-                {m.unread > 0 && <Badge n={m.unread} />}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Chat window */}
       {active && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          {/* Header */}
-          <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
-            <div style={{ position: "relative" }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: active.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{active.avatar}</div>
-              {active.online && <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderRadius: "50%", background: T.green, border: `2px solid ${T.surface}` }} />}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <div key={`h${activeId}`} className="in-fade" style={{ padding: "14px 24px", borderBottom: `1px solid ${T.line}`, display: "flex", gap: 12, alignItems: "center" }}>
+            <Avatar initials={active.avatar} size={34} color={active.color} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{active.name}</div>
+              <div style={{ fontSize: 12, color: T.t3 }}>{active.role} · {typing[activeId] ? <span style={{ color: T.t1 }}>typing…</span> : active.online ? <span style={{ color: T.green }}>online</span> : "offline"}</div>
             </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{active.name}</div>
-              <div style={{ fontSize: 11, color: T.t3 }}>{active.role} · {active.online ? <span style={{ color: T.green }}>Online</span> : "Offline"}</div>
-            </div>
+            <Btn size="sm"><User size={13} strokeWidth={SW} /> View profile</Btn>
           </div>
 
-          {/* Messages */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-            {msgs.map((msg, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: msg.from === "me" ? "flex-end" : "flex-start", marginBottom: 12 }}>
-                <div style={{ maxWidth: "68%" }}>
-                  <div style={{ padding: "10px 14px", borderRadius: msg.from === "me" ? "14px 14px 2px 14px" : "14px 14px 14px 2px", background: msg.from === "me" ? `linear-gradient(135deg, ${T.accent}, ${T.purple})` : T.surface, color: T.t1, fontSize: 13, lineHeight: 1.6 }}>{msg.text}</div>
-                  <div style={{ fontSize: 10, color: T.t4, marginTop: 4, textAlign: msg.from === "me" ? "right" : "left" }}>{msg.time}</div>
+          <div key={activeId} style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+            {msgs.map((msg, i) => {
+              const me = msg.from === "me";
+              return (
+                <div key={i} className={me ? "in-r" : "in-l"} style={{ display: "flex", justifyContent: me ? "flex-end" : "flex-start", marginBottom: 14, animationDelay: `${Math.min(i, 5) * 50}ms` }}>
+                  <div style={{ maxWidth: "64%" }}>
+                    <div style={{ padding: "10px 14px", borderRadius: me ? "12px 12px 3px 12px" : "12px 12px 12px 3px", background: me ? `linear-gradient(135deg, ${T.accent}, ${T.purple})` : T.surface2, color: me ? "#fff" : T.t1, border: me ? "none" : `1px solid ${T.line}`, fontSize: 13.5, lineHeight: 1.55 }}>{msg.text}</div>
+                    <div className="mono" style={{ fontSize: 10.5, color: T.t4, marginTop: 5, textAlign: me ? "right" : "left" }}>{msg.time}</div>
+                  </div>
+                </div>
+              );
+            })}
+            {typing[activeId] && (
+              <div className="in-l" style={{ display: "flex", marginBottom: 14 }}>
+                <div style={{ padding: "12px 14px", background: T.surface2, border: `1px solid ${T.line}`, borderRadius: "12px 12px 12px 3px", display: "flex", gap: 4 }}>
+                  {[0, 1, 2].map(k => <span key={k} style={{ width: 5, height: 5, borderRadius: "50%", background: T.t2, animation: `bounce 1.1s ${k * 0.15}s infinite` }} />)}
                 </div>
               </div>
-            ))}
+            )}
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
-          <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 10, flexShrink: 0 }}>
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder={`Message ${active.name}…`} style={{ flex: 1, padding: "10px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 9, color: T.t1, fontSize: 13, outline: "none" }} onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border} />
-            <Btn onClick={send} disabled={!input.trim()}><Ic n="send" /></Btn>
+          <div style={{ padding: "14px 24px", borderTop: `1px solid ${T.line}`, display: "flex", gap: 8 }}>
+            <input className="field" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder={`Reply to ${active.name.split(" ")[0]}…`} style={{ padding: "10px 14px" }} />
+            <Btn variant="accent" onClick={send} disabled={!input.trim()} title="Send"><Send size={15} strokeWidth={SW} /></Btn>
           </div>
         </div>
       )}
@@ -982,114 +1438,134 @@ function InboxPage() {
   );
 }
 
-// ─── PROGRESSION ──────────────────────────────────────────────────────────────
-function ProgressionPage() {
+// ─── CAREER MAP ───────────────────────────────────────────────────────────────
+function ProgressionPage({ onAskGumball }) {
   const path = CAREER_PATH_DATA["Data Analyst"];
-  const [sel, setSel] = useState(1);
-  const statusColor = { completed: T.green, current: T.accent, next: T.amber, future: T.t4 };
+  const [sel, setSel] = useState(2);
+  const mounted = useMounted(200);
+  const stage = path[sel];
+  const have = stage.skills.filter(s => USER_SKILLS.has(s));
+  const coverage = Math.round((have.length / stage.skills.length) * 100);
+  const progressPct = (1.45 / (path.length - 1)) * 100; // between "current" and "next"
 
   return (
-    <div style={{ maxWidth: 1000 }}>
-      <PageHeader eyebrow="Career Map" title="Your Growth Path" sub="Data Analytics track — AI-powered skill gap analysis" />
+    <div>
+      <PageHead kicker="Career map" title="Your path to Analytics Manager" sub="Data analytics track. Pick a stage to see the skills and certifications it asks for." />
 
-      {/* Timeline */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 32, gap: 0, overflowX: "auto", paddingBottom: 8 }}>
-        {path.map((step, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", flex: i < path.length - 1 ? 1 : "none" }}>
-            <div onClick={() => setSel(i)} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", minWidth: 120, padding: "0 8px" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: sel === i ? statusColor[step.status] : `${statusColor[step.status]}20`, border: `2px solid ${statusColor[step.status]}`, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", marginBottom: 8, color: sel === i ? "#fff" : statusColor[step.status], fontSize: 14 }}>
-                {step.status === "completed" && <Ic n="check" />}
-                {step.status === "current" && "●"}
-                {step.status === "next" && "→"}
-                {step.status === "future" && "○"}
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: statusColor[step.status], textAlign: "center", lineHeight: 1.3, marginBottom: 4 }}>{step.title}</div>
-              <div style={{ fontSize: 10, color: T.t4, textAlign: "center" }}>{step.timeline}</div>
-            </div>
-            {i < path.length - 1 && <div style={{ flex: 1, height: 2, background: i < 1 ? T.green : T.border, minWidth: 24, marginBottom: 24 }} />}
+      <div className="card in" style={{ padding: "26px 12px 18px", marginBottom: 20, ...d(140) }}>
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(${path.length}, 1fr)` }}>
+          <div style={{ position: "absolute", top: 7, left: `${50 / path.length}%`, right: `${50 / path.length}%`, height: 1, background: T.line2 }}>
+            <div style={{ height: "100%", width: mounted ? `${progressPct}%` : 0, background: T.t1, transition: "width 1.2s var(--ease) .3s" }} />
           </div>
-        ))}
-      </div>
-
-      {/* Detail */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <Card style={{ padding: "22px" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{path[sel].title}</h3>
-            <Tag color={statusColor[path[sel].status]}>{path[sel].status}</Tag>
-          </div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: T.t3, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Required Skills</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {path[sel].skills.map(s => <Tag key={s} color={T.accent}>{s}</Tag>)}
-          </div>
-        </Card>
-
-        {path[sel].certs?.length > 0 ? (
-          <Card style={{ padding: "22px", borderColor: `${T.amber}33` }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
-              <span style={{ fontSize: 18 }}>🏅</span>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>AI-Recommended Certs</div>
-                <div style={{ fontSize: 11, color: T.amber }}>To bridge skill gaps for this level</div>
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {path[sel].certs.map(c => (
-                <div key={c} style={{ display: "flex", gap: 12, padding: "12px 14px", background: T.amberDim, border: `1px solid ${T.amber}22`, borderRadius: 9, alignItems: "center" }}>
-                  <span style={{ fontSize: 16 }}>📋</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>{c}</div>
-                    <div style={{ fontSize: 11, color: T.t3 }}>Recommended for next career level</div>
-                  </div>
-                  <Btn size="sm" variant="secondary">Enroll</Btn>
+          {path.map((p, i) => {
+            const isSel = sel === i;
+            const done = p.status === "completed";
+            const cur = p.status === "current";
+            return (
+              <button key={p.title} onClick={() => setSel(i)} className="in-pop" style={{ position: "relative", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, color: T.t1, padding: "0 6px", ...d(250 + i * 100) }}>
+                <span style={{ position: "relative", width: 15, height: 15, borderRadius: "50%", display: "grid", placeItems: "center", background: done ? T.t1 : T.bg, border: `1.5px solid ${done ? T.t1 : cur ? T.accent : isSel ? T.t1 : T.line2}`, transform: isSel ? "scale(1.25)" : "scale(1)", transition: "transform .3s var(--ease), border-color .2s" }}>
+                  {done && <Check size={9} strokeWidth={3.5} color={T.bg} />}
+                  {cur && <span className="live" style={{ background: T.accent }} />}
+                </span>
+                <div style={{ padding: "8px 10px", borderRadius: 8, background: isSel ? T.surface2 : "transparent", boxShadow: isSel ? `inset 0 0 0 1px ${T.line2}` : "none", transition: "background .2s", width: "100%" }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: isSel ? T.t1 : p.status === "future" ? T.t3 : T.t2 }}>{p.title}</div>
+                  <div className="mono" style={{ fontSize: 11, color: T.t3, marginTop: 4 }}>{p.timeline}</div>
+                  <div className="mono" style={{ fontSize: 10.5, color: cur ? T.accent : T.t4, marginTop: 4, textTransform: "uppercase", letterSpacing: 0.6 }}>{cur ? "You are here" : p.status === "next" ? "Next" : done ? "Done" : ""}&nbsp;</div>
                 </div>
-              ))}
-            </div>
-          </Card>
-        ) : (
-          <Card style={{ padding: "22px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            <span style={{ fontSize: 32 }}>🤖</span>
-            <div style={{ fontSize: 13, color: T.t3, textAlign: "center" }}>
-              {path[sel].status === "completed" ? "You've mastered this level! Great work." : "No specific certifications required for this level."}
-            </div>
-          </Card>
-        )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Gumball prompt */}
-      <div style={{ marginTop: 20, background: T.accentGlow2, border: `1px solid ${T.accent}30`, borderRadius: 14, padding: "18px 22px", display: "flex", gap: 14, alignItems: "center" }}>
-        <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>🤖</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Ask Gumball about your career path</div>
-          <div style={{ fontSize: 12, color: T.t3 }}>Get personalized advice on skills, certifications, and career strategies — tailored to your profile.</div>
+      <div key={sel} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)", gap: 20 }}>
+        <div className="card in">
+          <CardHead title={`${stage.title} · skills`} meta={`${have.length} of ${stage.skills.length} covered`} />
+          <div style={{ padding: "14px 18px 6px", display: "flex", alignItems: "center", gap: 14 }}>
+            <Bar value={coverage} color={coverage >= 60 ? T.green : coverage > 0 ? T.t1 : T.accent} height={4} />
+            <span className="mono" style={{ fontSize: 12, color: T.t2 }}>{coverage}%</span>
+          </div>
+          <div style={{ padding: "6px 0 8px" }}>
+            {stage.skills.map((s, i) => {
+              const ok = USER_SKILLS.has(s);
+              return (
+                <div key={s} className="in" style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", fontSize: 13.5, ...d(80 + i * 50) }}>
+                  {ok ? <Check size={14} strokeWidth={2.5} color={T.green} /> : <Circle size={14} strokeWidth={SW} color={T.t4} />}
+                  <span style={{ flex: 1, color: ok ? T.t2 : T.t1 }}>{s}</span>
+                  <span className="mono" style={{ fontSize: 11, color: ok ? T.t3 : T.accent }}>{ok ? "have" : "to learn"}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <Btn size="sm" variant="ghost">Open Chat</Btn>
+
+        <div className="card in" style={d(80)}>
+          <CardHead title="Recommended certifications" />
+          {stage.certs?.length ? stage.certs.map((c, i) => (
+            <div key={c} className="row in" style={{ display: "flex", gap: 12, padding: "14px 18px", alignItems: "center", borderTop: i ? `1px solid ${T.line}` : "none", ...d(140 + i * 70) }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${T.line2}`, display: "grid", placeItems: "center", color: T.t2, flexShrink: 0 }}><Award size={15} strokeWidth={SW} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5 }}>{c}</div>
+                <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>Closes gaps for {stage.title}</div>
+              </div>
+              <Btn size="sm">Enroll</Btn>
+            </div>
+          )) : (
+            <div style={{ padding: "28px 18px", fontSize: 13.5, color: T.t3, lineHeight: 1.6 }}>
+              {stage.status === "completed" ? "You've cleared this stage." : "No certifications needed here — this stage is about leadership and track record."}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card in" style={{ marginTop: 20, padding: "16px 18px", display: "flex", gap: 14, alignItems: "center", ...d(220) }}>
+        <GMark size={32} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500 }}>Not sure what to tackle first?</div>
+          <div style={{ fontSize: 13, color: T.t3, marginTop: 2 }}>Gumball can turn these gaps into a week-by-week plan.</div>
+        </div>
+        <Btn variant="accent" onClick={onAskGumball}>Make a plan <ArrowRight size={14} className="arrow" /></Btn>
       </div>
     </div>
   );
 }
 
-// ─── GUMBALL AI CHAT ──────────────────────────────────────────────────────────
+// ─── GUMBALL ──────────────────────────────────────────────────────────────────
+// Used when the live API can't be reached (no backend proxy / API key during a demo)
+function gumballFallback(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes("resume") || m.includes("cv")) return "A few quick wins for your resume:\n\n• Lead each bullet with an impact number, e.g. \"cut reporting time 40%\"\n• Move the Churn Predictor near the top — it shows end-to-end ML\n• Mirror keywords from the job post (SQL, dashboards, stakeholder reporting)\n• Keep it to one page and export the ATS-safe template for online portals";
+  if (m.includes("skill") || m.includes("learn")) return "For the Data Analyst stage, I'd focus on:\n\n• dbt — analytics engineering is showing up in more job posts\n• Advanced SQL: window functions and CTEs\n• A/B testing and experiment design\n\nPick one and ship a small project with it. That carries more weight than a certificate on its own.";
+  if (m.includes("interview")) return "A solid prep plan:\n\n• SQL: joins, GROUP BY and window functions under time pressure\n• Case questions: \"Sales dropped 10% — how would you investigate?\"\n• Walk through your Churn Predictor using STAR\n• Prepare 2–3 questions about their data stack\n\nWant me to run a mock question with you?";
+  if (m.includes("cert")) return "For Data Analyst roles in Malaysia, these carry the most weight:\n\n• Google Data Analytics — you're 78% there, finish it first\n• Microsoft Power BI Data Analyst (PL-300)\n• Databricks Data Analyst Associate\n\nAWS Cloud Practitioner is a nice extra if you're aiming at cloud-heavy teams.";
+  if (m.includes("plan") || m.includes("week")) return "Here's a 4-week plan based on your gaps:\n\n• Week 1 — finish Google Data Analytics (about 6 hours left)\n• Week 2 — learn dbt basics; rebuild your sales dashboard pipeline in it\n• Week 3 — design and analyse a mock A/B test, write it up\n• Week 4 — update resume and portfolio, reply to Sarah about the Grab referral";
+  return "With Python, SQL and Tableau you're in a good spot for Data Analyst roles. What would help most right now — skills, your resume, interviews, or certifications?";
+}
+
+const SUGGESTIONS = ["Make me a 4-week plan", "What skills should I learn next?", "How can I improve my resume?", "Which certifications matter most?"];
+
 function GumballChat({ minimized, onMinimize, onClose }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([
-    { role: "assistant", text: "Hey Ahmad! 👋 I'm Gumball, your AI career mentor. I know your profile — you're a CS student aiming for Data Analyst roles, with skills in Python, SQL, and Tableau.\n\nHow can I help you today? Here are some things I can do:", time: "now" },
+    { role: "assistant", text: "Hi Ahmad. I'm Gumball, your career mentor. I've read your profile — CS at UPM, aiming for Data Analyst, strong on Python, SQL and Tableau.\n\nWhat would you like to work on?" },
   ]);
-  const suggestions = ["How can I improve my resume?", "What skills should I learn next?", "How do I prepare for a data analyst interview?", "Which certifications matter most?"];
   const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+  const scrollDown = useCallback(() => bottomRef.current?.scrollIntoView({ block: "end" }), []);
 
-  useEffect(() => { if (!minimized) bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, minimized]);
+  useEffect(() => { if (!minimized) bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, minimized, loading]);
+  useEffect(() => { if (!minimized) inputRef.current?.focus(); }, [minimized]);
 
   const send = async (text) => {
     const msg = text || input.trim();
-    if (!msg) return;
+    if (!msg || loading) return;
     setInput("");
-    setMessages(m => [...m, { role: "user", text: msg, time: "now" }]);
+    setMessages(m => [...m, { role: "user", text: msg }]);
     setLoading(true);
 
     try {
-      const systemPrompt = `You are Gumball, a friendly and encouraging AI career mentor for a platform called CareerPath. You're talking with Ahmad Razif, a final-year Computer Science student at UPM Malaysia who is a job seeker targeting Data Analyst roles. His skills include Python, SQL, Tableau, Pandas, and Machine Learning. He has internship experience at TechCorp and has completed the Google Data Analytics certificate. Keep responses conversational, practical, and encouraging. Use bullet points for lists. Keep answers concise (under 200 words). Add relevant emojis occasionally.`;
+      const systemPrompt = `You are Gumball, a friendly, practical AI career mentor for a platform called CareerOrbit. You're talking with Ahmad Razif, a final-year Computer Science student at UPM Malaysia who is a job seeker targeting Data Analyst roles. His skills include Python, SQL, Tableau, Pandas, and Machine Learning. He has internship experience at TechCorp and is 78% through the Google Data Analytics certificate. Keep responses conversational, specific and encouraging. Use short bullet points for lists. Keep answers under 150 words. Do not use emojis.`;
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -1099,77 +1575,85 @@ function GumballChat({ minimized, onMinimize, onClose }) {
           max_tokens: 1000,
           system: systemPrompt,
           messages: [
-            ...messages.filter(m => m.role === "user" || (m.role === "assistant" && m !== messages[0])).map(m => ({ role: m.role, content: m.text })),
-            { role: "user", content: msg }
+            ...messages.slice(1).map(m => ({ role: m.role, content: m.text })),
+            { role: "user", content: msg },
           ],
         }),
       });
 
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      const reply = data.content?.[0]?.text || "Sorry, I couldn't process that. Please try again.";
-      setMessages(m => [...m, { role: "assistant", text: reply, time: "now" }]);
+      const reply = data.content?.[0]?.text;
+      if (!reply) throw new Error("Empty reply");
+      setMessages(m => [...m, { role: "assistant", text: reply }]);
     } catch {
-      setMessages(m => [...m, { role: "assistant", text: "I'm having trouble connecting right now. Please try again in a moment!", time: "now" }]);
+      await new Promise(r => setTimeout(r, 650));
+      setMessages(m => [...m, { role: "assistant", text: gumballFallback(msg), offline: true }]);
     }
     setLoading(false);
   };
 
   if (minimized) return (
-    <button onClick={onMinimize} style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, cursor: "pointer", boxShadow: "0 8px 32px rgba(91,110,245,0.4)", zIndex: 1000 }}>
-      🤖
+    <button onClick={onMinimize} className="btn btn-secondary in-pop" style={{ position: "fixed", bottom: 20, right: 20, padding: "8px 14px 8px 8px", borderRadius: 99, zIndex: 1000, boxShadow: "0 12px 32px rgba(0,0,0,0.5)", fontSize: 13 }}>
+      <GMark size={24} /> Gumball {loading && <Loader2 size={13} className="spin" />}
     </button>
   );
 
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, width: 380, height: 560, background: T.surface, border: `1px solid ${T.borderAccent}`, borderRadius: 18, display: "flex", flexDirection: "column", boxShadow: "0 24px 80px rgba(0,0,0,0.6)", zIndex: 1000, overflow: "hidden" }}>
-      {/* Header */}
-      <div style={{ padding: "14px 16px", background: `linear-gradient(135deg, ${T.accent}20, ${T.purple}15)`, borderBottom: `1px solid ${T.border}`, display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🤖</div>
+    <div className="panel-in" style={{ position: "fixed", bottom: 20, right: 20, width: 388, height: 580, background: T.surface, border: `1px solid ${T.line2}`, borderRadius: 12, display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.55)", zIndex: 1000, overflow: "hidden" }}>
+      <div style={{ padding: "12px 12px 12px 16px", borderBottom: `1px solid ${T.line}`, display: "flex", gap: 12, alignItems: "center" }}>
+        <GMark size={28} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>Gumball</div>
-          <div style={{ fontSize: 10, color: T.green, display: "flex", alignItems: "center", gap: 4 }}>
-            <div style={{ width: 5, height: 5, borderRadius: "50%", background: T.green }} /> AI Career Mentor · Online
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Gumball</div>
+          <div style={{ fontSize: 11.5, color: T.t3, display: "flex", alignItems: "center", gap: 7 }}>
+            {loading ? <><Loader2 size={11} className="spin" /> thinking</> : <><span className="live" /> Career mentor · knows your profile</>}
           </div>
         </div>
-        <button onClick={onMinimize} style={{ background: "none", border: "none", color: T.t3, cursor: "pointer", padding: 4 }}><Ic n="minimize" /></button>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: T.t3, cursor: "pointer", padding: 4 }}><Ic n="x" /></button>
+        <IconBtn icon={Minus} title="Minimise" onClick={onMinimize} />
+        <IconBtn icon={X} title="Close" onClick={onClose} />
       </div>
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px" }}>
-        {messages.map((msg, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", marginBottom: 10 }}>
-            {msg.role === "assistant" && (
-              <div style={{ width: 24, height: 24, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0, marginRight: 8, marginTop: 2 }}>🤖</div>
-            )}
-            <div style={{ maxWidth: "80%", padding: "10px 12px", borderRadius: msg.role === "user" ? "14px 14px 2px 14px" : "14px 14px 14px 2px", background: msg.role === "user" ? `linear-gradient(135deg, ${T.accent}, ${T.purple})` : T.bg, color: T.t1, fontSize: 12, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{msg.text}</div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "18px 16px" }}>
+        {messages.map((msg, i) => msg.role === "user" ? (
+          <div key={i} className="in-r" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <div style={{ maxWidth: "82%", padding: "9px 13px", borderRadius: "12px 12px 3px 12px", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, color: "#fff", fontSize: 13, lineHeight: 1.55 }}>{msg.text}</div>
+          </div>
+        ) : (
+          <div key={i} className="in-fade" style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+            <GMark size={20} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, lineHeight: 1.65, color: T.t1, whiteSpace: "pre-wrap" }}>
+                <TypeText key={i} text={msg.text} onTick={i === messages.length - 1 ? scrollDown : undefined} />
+              </div>
+              {msg.offline && <div className="mono" style={{ fontSize: 10.5, color: T.t4, marginTop: 6 }}>offline demo reply</div>}
+            </div>
           </div>
         ))}
+
+        {messages.length === 1 && (
+          <div className="in" style={{ marginLeft: 30, border: `1px solid ${T.line}`, borderRadius: 8, overflow: "hidden", ...d(700) }}>
+            {SUGGESTIONS.map((s, i) => (
+              <button key={s} onClick={() => send(s)} className="row" style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "9px 12px", background: "transparent", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", color: T.t2, fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ flex: 1 }}>{s}</span><ArrowUpRight size={13} color={T.t3} />
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading && (
-          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 10 }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>🤖</div>
-            <div style={{ padding: "10px 14px", background: T.bg, borderRadius: "14px 14px 14px 2px", display: "flex", gap: 4 }}>
-              {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: T.t3, animation: `bounce 1.2s ${i * 0.2}s infinite` }} />)}
+          <div className="in-fade" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
+            <GMark size={20} />
+            <div style={{ display: "flex", gap: 4 }}>
+              {[0, 1, 2].map(k => <span key={k} style={{ width: 5, height: 5, borderRadius: "50%", background: T.t2, animation: `bounce 1.1s ${k * 0.15}s infinite` }} />)}
             </div>
           </div>
         )}
         <div ref={bottomRef} />
-        <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}`}</style>
       </div>
 
-      {/* Suggestions */}
-      {messages.length <= 1 && (
-        <div style={{ padding: "0 12px 10px", display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {suggestions.map(s => (
-            <button key={s} onClick={() => send(s)} style={{ padding: "5px 10px", background: T.accentGlow, border: `1px solid ${T.accent}33`, borderRadius: 6, color: T.accentLight, fontSize: 11, cursor: "pointer" }}>{s}</button>
-          ))}
-        </div>
-      )}
-
-      {/* Input */}
-      <div style={{ padding: "10px 12px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 8, flexShrink: 0 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !loading && send()} placeholder="Ask Gumball anything…" style={{ flex: 1, padding: "9px 12px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.t1, fontSize: 12, outline: "none" }} onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border} />
-        <Btn onClick={() => send()} disabled={!input.trim() || loading} size="sm"><Ic n="send" /></Btn>
+      <div style={{ padding: 12, borderTop: `1px solid ${T.line}`, display: "flex", gap: 8 }}>
+        <input ref={inputRef} className="field" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Ask about skills, resumes, interviews…" style={{ padding: "9px 12px", fontSize: 13 }} />
+        <Btn variant="accent" onClick={() => send()} disabled={!input.trim() || loading} title="Send"><Send size={14} strokeWidth={SW} /></Btn>
       </div>
     </div>
   );
@@ -1180,7 +1664,7 @@ export default function App() {
   const [screen, setScreen] = useState("auth"); // auth | onboarding | resume | app
 
   return (
-    <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+    <div key={screen} className="in-fade">
       {screen === "auth" && <AuthPage onAuth={type => setScreen(type === "new" ? "onboarding" : "app")} />}
       {screen === "onboarding" && <Onboarding onDone={() => setScreen("resume")} />}
       {screen === "resume" && <ResumeUpload onDone={() => setScreen("app")} />}
